@@ -1,0 +1,67 @@
+.header-btn{
+    background-color:#e6e1f2;
+    color: #8166bc;
+    font-weight: bold;
+}
+.header-logo{
+    width: 20%;
+}
+/*********** Baseline, reset styles ***********/
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    width: 100%;
+  }
+  
+  /* Removes default focus */
+  input[type="range"]:focus {
+    outline: none;
+  }
+  
+  /******** Chrome, Safari, Opera and Edge Chromium styles ********/
+  /* slider track */
+  input[type="range"]::-webkit-slider-runnable-track {
+    background-color: #570f4d;
+    border-radius: 0.5rem;
+    height: 3.5px;
+  }
+  
+  /* slider thumb */
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    margin-top: -4.75px; /* Centers thumb on the track */
+    background-color: #47114b;
+    border-radius: 0.5rem;
+    height: 13px;
+    width: 13px;
+  }
+  
+  input[type="range"]:focus::-webkit-slider-thumb {
+    /* outline: 3px solid #47114b; */
+    /* outline-offset: 0.125rem; */
+  }
+  
+  /*********** Firefox styles ***********/
+  /* slider track */
+  input[type="range"]::-moz-range-track {
+    background-color: #570f4d;
+    border-radius: 0.5rem;
+    height: 3.5px;
+  }
+  
+  /* slider thumb */
+  input[type="range"]::-moz-range-thumb {
+    background-color: #47114b;
+    border: none; /*Removes extra border that FF applies*/
+    border-radius: 0.5rem;
+    height: 13px;
+    width: 13px;
+  }
+  
+  input[type="range"]:focus::-moz-range-thumb{
+    outline: 3px solid #47114b;
+    outline-offset: 0.125rem;
+  }
