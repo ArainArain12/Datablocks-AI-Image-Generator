@@ -1,7 +1,124 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Slider from './Slider';
 export default function Sidebar() {
   const [images, setImages] = useState([null, null, null, null]);
+  const [spot, setSpot] = useState({ x: 150, y: 150 });
+  const canvasRef = useRef(null);
+  const canvasRef1 = useRef(null);
+  const [angle, setAngle] = useState(0);
+
+  useEffect(() => {
+    const canvas = canvasRef1.current;
+    const ctx = canvas.getContext('2d');
+    let isDragging = false;
+
+    const draw = (spot) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const gradient = ctx.createRadialGradient(spot.x, spot.y, 0, spot.x, spot.y, 100);
+      gradient.addColorStop(0, 'white');
+      gradient.addColorStop(1, 'black');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    };
+
+    const handleMouseDown = (e) => {
+      isDragging = true;
+      updateSpot(e);
+    };
+
+    const handleMouseMove = (e) => {
+      if (isDragging) {
+        updateSpot(e);
+      }
+    };
+
+    const handleMouseUp = () => {
+      isDragging = false;
+    };
+
+    const updateSpot = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      setSpot({ x, y });
+      draw({ x, y });
+    };
+
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('mouseleave', handleMouseUp);
+
+    draw(spot);
+
+    return () => {
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('mouseleave', handleMouseUp);
+    };
+  }, [spot]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    let isDragging = false;
+
+    const draw = (angle) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, canvas.height / 2);
+      const x = canvas.width / 2 + (canvas.width / 2 - 10) * Math.cos(angle);
+      const y = canvas.height / 2 - (canvas.height / 2 - 10) * Math.sin(angle);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.closePath();
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.closePath();
+    };
+
+    const handleMouseDown = (e) => {
+      isDragging = true;
+      updateAngle(e);
+    };
+
+    const handleMouseMove = (e) => {
+      if (isDragging) {
+        updateAngle(e);
+      }
+    };
+
+    const handleMouseUp = () => {
+      isDragging = false;
+    };
+
+    const updateAngle = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left - canvas.width / 2;
+      const y = canvas.height / 2 - (e.clientY - rect.top);
+      const angle = Math.atan2(y, x);
+      setAngle(angle);
+      draw(angle);
+    };
+
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('mouseleave', handleMouseUp);
+
+    draw(angle);
+
+    return () => {
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('mouseleave', handleMouseUp);
+    };
+  }, [angle]);
 
   const handleImageChange = (index, event) => {
     const newImages = [...images];
@@ -67,7 +184,6 @@ export default function Sidebar() {
             <Slider label="Image Strength" />
           </div>
 
-
           {images.map((image, index) => (
             <div key={index} className=" relative">
 
@@ -89,7 +205,6 @@ export default function Sidebar() {
             </div>
           ))}
 
-
           {/* Add More Images Button */}
           <div className=" relative">
 
@@ -102,13 +217,50 @@ export default function Sidebar() {
   </div>
 
 </div>
-          
-
-         
-
 
         </div>
       </div>
+
+       {/* Light Angle Section */}
+       <div className="mb-4">
+      <h2 className="text-sm font-semibold mb-2">Light Angle </h2>
+      <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
+        <div className="p-0 w-full bg-customBG1 flex items-center justify-center rounded-lg">
+          <canvas
+            ref={canvasRef}
+            width={300}
+            height={300}
+            style={{ backgroundColor: '#444', borderRadius: '8px' }}
+          />
+        </div>
+      </div>
+      <div>
+        <Slider label="Strength" className="mb-2" />
+        <Slider label="Starts" className="mb-2" />
+        <Slider label="Ends" className="mb-2" />
+      </div>
+    </div>
+
+      {/* Light Spot  Section */}
+      <div className="mb-4">
+      <h2 className="text-sm font-semibold mb-2">Light Spot</h2>
+      <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
+        <div className="p-0 w-full bg-customBG1 flex items-center justify-center rounded-lg">
+          <canvas
+            ref={canvasRef1}
+            width={300}
+            height={300}
+            style={{ backgroundColor: '#333', borderRadius: '8px' }}
+          />
+        </div>
+      </div>
+      <div>
+        <Slider label="Strength" className="mb-2" />
+        <Slider label="Starts" className="mb-2" />
+        <Slider label="Ends" className="mb-2" />
+      </div>
+    </div>
+
 
       {/* Depth Map Section */}
       <div className="mb-4">
