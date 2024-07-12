@@ -15,7 +15,7 @@ export default function Layout({ children }) {
         </div>
       </header>
       <div className="flex flex-grow overflow-hidden">
-        <Sidebar /> {/* Include the Sidebar component */}
+        <Sidebar /> 
         <section className="flex-1 p-4 bg-white overflow-hidden  ">
           {/* Main Body content */}
           <div className="w-full p-2 h-full bg-white border-2 border-black">
