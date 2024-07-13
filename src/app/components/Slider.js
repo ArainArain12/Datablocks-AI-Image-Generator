@@ -1,10 +1,14 @@
 import { useState } from 'react';
 
-export default function Slider({ label, initialValue = 0.5, min = 0, max = 1, step = 0.1 }) {
+export default function Slider({ label, initialValue = 0.5, min = 0, max = 1, step = 0.1, onChange }) {
   const [value, setValue] = useState(initialValue);
 
   const handleChange = (event) => {
-    setValue(event.target.value);
+    const newValue = event.target.value;
+    setValue(newValue);
+    if (onChange) {
+      onChange(newValue);
+    }
   };
 
   return (

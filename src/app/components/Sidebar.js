@@ -19,7 +19,6 @@ export default function Sidebar() {
   const [denoise, setDenoise] = useState(0.7);
   const [multiplier, setMultiplier] = useState(0.18);
   const [hardness, setHardness] = useState(0);
-  const [shape, setShape] = useState('square');
   const [shapeHeight, setShapeHeight] = useState(256);
   const [shapeWidth, setShapeWidth] = useState(256);
   const [x, setX] = useState(300);
@@ -147,7 +146,6 @@ export default function Sidebar() {
       const storageRef = ref(storage, file.name);
       await uploadBytes(storageRef, file);
       const fileURL = await getDownloadURL(storageRef);
-      console.log("File URL : ",{fileURL})
 
       const newImages = [...images];
       newImages[index] = file;
@@ -176,6 +174,106 @@ export default function Sidebar() {
       const newReferenceImageURLs = referenceImageURLs.filter((_, i) => i !== index - 1);
       setReferenceImageURLs(newReferenceImageURLs);
     }
+  };
+
+  const debouncedFetch = (fn, delay) => {
+    let timerId;
+    return (...args) => {
+      clearTimeout(timerId);
+      timerId = setTimeout(() => {
+        fn(...args);
+      }, delay);
+    };
+  };
+
+  const handleRealtimeChange = async (payload) => {
+    const apiEndpoint = 'https://api.runpod.ai/v2/it1xtugfs09gfy/runsync';
+    const bearerToken = 'MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0';
+
+    try {
+      const response = await axios.post(apiEndpoint, payload, {
+        headers: {
+          'Authorization': `Bearer ${bearerToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      console.log(response.data);
+    } catch (error) {
+      console.error('Error generating image:', error);
+    }
+  };
+
+  const handleSliderChange = (type, value) => {
+    let payload = {};
+
+    switch (type) {
+      case 'Light_Angle':
+        payload = {
+          input: {
+            model: "Light_IPAdapter",
+            prompt: prompt,
+            input_image: baseImageURL,
+            multiplier: multiplier,
+            hardness: hardness,
+            shape_height: shapeHeight,
+            shape_width: shapeWidth,
+            shape: 'square',
+            x: x,
+            y: y,
+            reference_image: referenceImageURLs[0],
+            reference_weight: referenceWeight,
+          },
+        };
+        break;
+      case 'Light_Spot':
+        payload = {
+          input: {
+            model: "Light_IPAdapter",
+            prompt: prompt,
+            input_image: baseImageURL,
+            multiplier: multiplier,
+            hardness: hardness,
+            shape_height: shapeHeight,
+            shape_width: shapeWidth,
+            shape: 'square',
+            x: x,
+            y: y,
+            reference_image: referenceImageURLs[0],
+            reference_weight: referenceWeight,
+          },
+        };
+        break;
+      case 'Depth_Map':
+        payload = {
+          input: {
+            model: "Depth_Map",
+            input_image: baseImageURL,
+            depth_map_params: {
+              strength: value.strength,
+              starts: value.starts,
+              ends: value.ends,
+            },
+          },
+        };
+        break;
+      case 'Edges':
+        payload = {
+          input: {
+            model: "Edges",
+            input_image: baseImageURL,
+            edges_params: {
+              strength: value.strength,
+              starts: value.starts,
+              ends: value.ends,
+            },
+          },
+        };
+        break;
+      default:
+        break;
+    }
+
+    debouncedFetch(handleRealtimeChange, 1000)(payload);
   };
 
   const handleGenerate = async () => {
@@ -213,7 +311,7 @@ export default function Sidebar() {
             hardness: hardness,
             shape_height: shapeHeight,
             shape_width: shapeWidth,
-            shape: shape,
+            shape: 'square',
             x: x,
             y: y,
           },
@@ -229,7 +327,7 @@ export default function Sidebar() {
             hardness: hardness,
             shape_height: shapeHeight,
             shape_width: shapeWidth,
-            shape: shape,
+            shape: 'square',
             x: x,
             y: y,
             reference_image: referenceImageURLs[0],
@@ -362,9 +460,21 @@ export default function Sidebar() {
           </div>
         </div>
         <div>
-          <Slider label="Strength" className="mb-2" />
-          <Slider label="Starts" className="mb-2" />
-          <Slider label="Ends" className="mb-2" />
+          <Slider
+            label="Strength"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Light_Angle', { strength: value })}
+          />
+          <Slider
+            label="Starts"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Light_Angle', { starts: value })}
+          />
+          <Slider
+            label="Ends"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Light_Angle', { ends: value })}
+          />
         </div>
       </div>
 
@@ -382,9 +492,21 @@ export default function Sidebar() {
           </div>
         </div>
         <div>
-          <Slider label="Strength" className="mb-2" />
-          <Slider label="Starts" className="mb-2" />
-          <Slider label="Ends" className="mb-2" />
+          <Slider
+            label="Strength"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Light_Spot', { strength: value })}
+          />
+          <Slider
+            label="Starts"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Light_Spot', { starts: value })}
+          />
+          <Slider
+            label="Ends"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Light_Spot', { ends: value })}
+          />
         </div>
       </div>
 
@@ -397,9 +519,21 @@ export default function Sidebar() {
           </div>
         </div>
         <div>
-          <Slider label="Strength" className="mb-2" />
-          <Slider label="Starts" className="mb-2" />
-          <Slider label="Ends" className="mb-2" />
+          <Slider
+            label="Strength"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Depth_Map', { strength: value })}
+          />
+          <Slider
+            label="Starts"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Depth_Map', { starts: value })}
+          />
+          <Slider
+            label="Ends"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Depth_Map', { ends: value })}
+          />
         </div>
       </div>
 
@@ -412,9 +546,21 @@ export default function Sidebar() {
           </div>
         </div>
         <div>
-          <Slider label="Strength" className="mb-2" />
-          <Slider label="Starts" className="mb-2" />
-          <Slider label="Ends" className="mb-2" />
+          <Slider
+            label="Strength"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Edges', { strength: value })}
+          />
+          <Slider
+            label="Starts"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Edges', { starts: value })}
+          />
+          <Slider
+            label="Ends"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Edges', { ends: value })}
+          />
         </div>
       </div>
 
@@ -422,9 +568,21 @@ export default function Sidebar() {
       <div className="mb-4">
         <h2 className="text-sm font-semibold mb-2">Render Engine</h2>
         <div>
-          <Slider label="CFG" className="mb-2" />
-          <Slider label="Steps" className="mb-2" />
-          <Slider label="Denoise" className="mb-2" />
+          <Slider
+            label="CFG"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Render_Engine', { cfg: value })}
+          />
+          <Slider
+            label="Steps"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Render_Engine', { steps: value })}
+          />
+          <Slider
+            label="Denoise"
+            className="mb-2"
+            onChange={(value) => handleSliderChange('Render_Engine', { denoise: value })}
+          />
         </div>
       </div>
 
