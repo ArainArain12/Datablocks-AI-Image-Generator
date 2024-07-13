@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Slider from './Slider';
-import { storage, ref,getDownloadURL,uploadBytes } from '../utils/firebaseConfig';
+import { storage, ref, uploadBytes, getDownloadURL } from '../utils/firebaseConfig';
 import axios from 'axios';
 
 export default function Sidebar() {
@@ -147,11 +147,12 @@ export default function Sidebar() {
       const storageRef = ref(storage, file.name);
       await uploadBytes(storageRef, file);
       const fileURL = await getDownloadURL(storageRef);
-  
+      console.log("File URL : ",{fileURL})
+
       const newImages = [...images];
       newImages[index] = file;
       setImages(newImages);
-  
+
       if (index === 0) {
         setBaseImageURL(fileURL);
       } else {
@@ -161,7 +162,6 @@ export default function Sidebar() {
       }
     }
   };
-  
 
   const addImageSlot = () => {
     setImages([...images, null]);
@@ -180,7 +180,8 @@ export default function Sidebar() {
 
   const handleGenerate = async () => {
     let payload = {};
-    let apiEndpoint = '';
+    const apiEndpoint = 'https://api.runpod.ai/v2/it1xtugfs09gfy/runsync';
+    const bearerToken = 'MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0';
 
     switch (model) {
       case 'Brush':
@@ -201,7 +202,6 @@ export default function Sidebar() {
             })),
           },
         };
-        apiEndpoint = 'https://backend.example.com/brush';
         break;
       case 'Light_Simple':
         payload = {
@@ -218,7 +218,6 @@ export default function Sidebar() {
             y: y,
           },
         };
-        apiEndpoint = 'https://backend.example.com/light_simple';
         break;
       case 'Light_IPAdapter':
         payload = {
@@ -237,7 +236,6 @@ export default function Sidebar() {
             reference_weight: referenceWeight,
           },
         };
-        apiEndpoint = 'https://backend.example.com/light_ipadapter';
         break;
       case 'Upscale_Simple':
         payload = {
@@ -246,7 +244,6 @@ export default function Sidebar() {
             model: "Upscale_Simple",
           },
         };
-        apiEndpoint = 'https://backend.example.com/upscale_simple';
         break;
       case 'Upscale_Detail':
         payload = {
@@ -257,14 +254,18 @@ export default function Sidebar() {
             enhance_prompt: enhancePrompt,
           },
         };
-        apiEndpoint = 'https://backend.example.com/upscale_detail';
         break;
       default:
         break;
     }
 
     try {
-      const response = await axios.post(apiEndpoint, payload);
+      const response = await axios.post(apiEndpoint, payload, {
+        headers: {
+          'Authorization': `Bearer ${bearerToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
       console.log(response.data);
     } catch (error) {
       console.error('Error generating image:', error);
