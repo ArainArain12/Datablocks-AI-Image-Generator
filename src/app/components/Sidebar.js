@@ -21,7 +21,7 @@ export default function Sidebar({
     { type: "reference", url: "" },
   ]);
   const [sliderValues, setSliderValues] = useState({
-    reference: [{ strength: 0.9, start: 0.5, end: 0.5 }],
+    reference: [{ strength: 1, start: 0, end: 1 }],
     lightSpot: { hardness: 0.5, multiplier: 0.2 },
     lightIPAdapter: { weight: 0.5 },
   });
@@ -31,9 +31,9 @@ export default function Sidebar({
   const [angle, setAngle] = useState(0);
   const [model, setModel] = useState("Brush");
   const [prompt, setPrompt] = useState("");
-  const [steps, setSteps] = useState(30);
+  const [steps, setSteps] = useState(40);
   const [cfg, setCfg] = useState(10);
-  const [denoise, setDenoise] = useState(50);
+  const [denoise, setDenoise] = useState(0.7);
   const [shapeHeight, setShapeHeight] = useState(50);
   const [shapeWidth, setShapeWidth] = useState(50);
   const [x, setX] = useState(300);
@@ -172,18 +172,17 @@ export default function Sidebar({
   //   };
   // }, [angle]);
 
-  const handleImageChange = async (index, event) => {
+  const handleImageChange = (index, event) => {
     const file = event.target.files[0];
     if (file) {
-      const storageRef = ref(storage, file.name);
-      await uploadBytes(storageRef, file);
-      const fileURL = await getDownloadURL(storageRef);
+      const localURL = URL.createObjectURL(file);
+      console.log('localURl',localURL)
 
       const newImages = [...images];
-      newImages[index] = { ...newImages[index], url: fileURL };
+      newImages[index] = { ...newImages[index], url:localURL,file };
       setImages(newImages);
     }
-  };
+};
 
   const addImageSlot = () => {
     if (images.filter((image) => image.type === "reference").length < 4) {
@@ -249,11 +248,29 @@ export default function Sidebar({
   };
 
   const handleGenerate = async () => {
-    const apiEndpoint = "https://api.runpod.ai/v2/it1xtugfs09gfy/run";
+    console.log('Images are:',images)
+    const apiEndpoint = "https://api.runpod.ai/v2/mc024os1pm3iay/run";
     const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
 
-    const baseImage = images.find((img) => img.type === "base")?.url;
-    const maskImage = images.find((img) => img.type === "mask")?.url;
+    const uploadImage = async (file) => {
+      console.log('File is:',file,file.name)
+      const storageRef = ref(storage, file.name);
+      await uploadBytes(storageRef, file);
+      return await getDownloadURL(storageRef);
+  };
+
+  const newImages = await Promise.all(images.map(async (image) => {
+      if (image.file) {
+          const url = await uploadImage(image.file);
+          return { ...image, url:url };
+      }
+      return image;
+  }));
+
+  setImages(newImages);
+
+    const baseImage = newImages.find((img) => img.type === "base")?.url;
+    const maskImage = newImages.find((img) => img.type === "mask")?.url;
 
     if (model === "Brush") {
       if (!baseImage || !maskImage) {
@@ -269,7 +286,7 @@ export default function Sidebar({
 
     let payload = {};
 
-    let referenceImages = images
+    let referenceImages = newImages
       .filter((image) => image.type === "reference")
       .map((image, index) => ({
         image: image.url,
@@ -371,7 +388,7 @@ export default function Sidebar({
   };
 
   const pollForStatus = async (jobId) => {
-    const apiStatusEndpoint = `https://api.runpod.ai/v2/it1xtugfs09gfy/status/${jobId}`;
+    const apiStatusEndpoint = `https://api.runpod.ai/v2/mc024os1pm3iay/status/${jobId}`;
     const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
 
     try {
@@ -407,7 +424,7 @@ export default function Sidebar({
           input_image: outputImageUrl,
         },
       };
-      const apiEndpoint = "https://api.runpod.ai/v2/it1xtugfs09gfy/run";
+      const apiEndpoint = "https://api.runpod.ai/v2/run/mc024os1pm3iay";
       const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
       try {
         const response = await axios.post(apiEndpoint, payload, {
@@ -500,6 +517,7 @@ export default function Sidebar({
                         value={sliderValues.reference[index - 2]?.strength || 0}
                         min={0.8}
                         max={1.3}
+                        initialValue={1}
                         onChange={(value) =>
                           handleSliderChange(
                             "reference",
@@ -512,6 +530,7 @@ export default function Sidebar({
                       <Slider
                         label="Start"
                         value={sliderValues.reference[index - 2]?.start || 0}
+                        initialValue={0}
                         onChange={(value) =>
                           handleSliderChange(
                             "reference",
@@ -524,6 +543,7 @@ export default function Sidebar({
                       <Slider
                         label="End"
                         value={sliderValues.reference[index - 2]?.end || 0}
+                        initialValue={1}
                         onChange={(value) =>
                           handleSliderChange(
                             "reference",
@@ -731,15 +751,14 @@ export default function Sidebar({
               min={20}
               max={40}
               step={1}
-              initialValue={30}
+              initialValue={40}
               onChange={(value) => setSteps(parseFloat(value))}
             />
             <Slider
               label="Denoise"
               min={0}
-              max={100}
-              step={1}
-              initialValue={50}
+              max={1}
+              initialValue={0.7}
               className="mb-2"
               onChange={(value) => setDenoise(parseFloat(value))}
             />
