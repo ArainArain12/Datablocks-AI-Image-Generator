@@ -41,8 +41,8 @@ export default function Sidebar({
   const [referenceWeight, setReferenceWeight] = useState(0.3);
   const [materialPrompt, setMaterialPrompt] = useState("");
   const [enhancePrompt, setEnhancePrompt] = useState("");
-  const [selectedShape, setSelectedShape] = useState(null);
-  const [selectedSize, setSelectedSize] = useState(null);
+  const [selectedShape, setSelectedShape] = useState("circle");
+  const [selectedSize, setSelectedSize] = useState("S");
   const [polling, setPolling] = useState(true);
   const referenceCount = images.filter(
     (image) => image.type === "reference"
@@ -261,6 +261,7 @@ export default function Sidebar({
 
   const newImages = await Promise.all(images.map(async (image) => {
       if (image.file) {
+        console.log('Iamge files are:',image.file)
           const url = await uploadImage(image.file);
           return { ...image, url:url };
       }
@@ -323,7 +324,7 @@ export default function Sidebar({
         };
         break;
       case "Light_Simple":
-        const image_found = images.find((img) => img.type === "reference")?.url;
+        const image_found = newImages.find((img) => img.type === "reference")?.url;
         payload = {
           input: {
             model: image_found ? "Light_IPAdapter" : "Light_Simple",
@@ -607,6 +608,10 @@ export default function Sidebar({
             <Slider
               label="Light Hardness"
               className="mb-2"
+              min={0}
+              max={0.2}
+              step={0.01}
+              initialValue={0.18}
               value={sliderValues.lightSpot.start}
               onChange={(value) =>
                 handleSliderChange("lightSpot", 0, "start", value)
