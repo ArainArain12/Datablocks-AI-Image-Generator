@@ -1,11 +1,15 @@
 "use client";
 import Sidebar from "./Sidebar";
 import "../style.css";
-import { useState } from "react";
+import React, { useState } from 'react';
+import ReactBeforeSliderComponent from 'react-before-after-slider-component';
+import 'react-before-after-slider-component/dist/build.css';
 
 export default function Layout({ children }) {
   const [outputImageUrl, setOutputImageUrl] = useState(null);
   const [text, setGenerateText] = useState(null);
+  const [baseImage,setBaseImage]=useState(null);
+
   return (
     <div className={`flex flex-col h-screen bg-white text-black`}>
       <header className="flex justify-between items-center p-4 bg-white ">
@@ -27,16 +31,22 @@ export default function Layout({ children }) {
           outputImageUrl={outputImageUrl}
           setOutputImageUrl={setOutputImageUrl}
           setGenerateText={setGenerateText}
+          setBaseImage={setBaseImage}
         />
-        <section className="flex-1 p-4 bg-white overflow-hidden  ">
+        <section className="flex-1 bg-white overflow-hidden">
           {/* Main Body content */}
-          <div className="w-full p-2 h-full bg-white border-2 border-black">
+          <div className="w-full h-fit bg-white">
             {text ? (
               text
             ) : (
-              <div>
-                <img src={outputImageUrl}></img>
-              </div>
+              outputImageUrl ? (
+                <ReactBeforeSliderComponent
+                  firstImage={{ imageUrl:baseImage }}
+                  secondImage={{ imageUrl: outputImageUrl }}
+                />
+              ) : (
+                <div></div>
+              )
             )}
           </div>
         </section>

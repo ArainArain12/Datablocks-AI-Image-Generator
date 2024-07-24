@@ -14,6 +14,7 @@ export default function Sidebar({
   outputImageUrl,
   setOutputImageUrl,
   setGenerateText,
+  setBaseImage
 }) {
   const [images, setImages] = useState([
     { type: "base", url: "" },
@@ -408,6 +409,9 @@ export default function Sidebar({
 
       if (response.data.status === "COMPLETED") {
         setGenerateText(null);
+        setBaseImage(images.find(
+          (img) => img.type === "base"
+        )?.url)
         setOutputImageUrl(response.data.output[0]);
         setPolling(false);
       } else if (polling) {
@@ -583,7 +587,6 @@ export default function Sidebar({
             ) : null;
           })}
 
-          {/* Add More Images Button */}
           {model === "Brush" && (
             <div className="relative">
               <div className="bg-white p-4 rounded-2xl shadow border border-black border-2">
