@@ -49,7 +49,7 @@ export default function Sidebar({
   ).length;
 
   useEffect(() => {
-    if (model !== "Brush") {
+    if (model == "Light_Simple") {
       const canvas = canvasRef1.current;
       const ctx = canvas.getContext("2d");
       let isDragging = false;
@@ -176,13 +176,13 @@ export default function Sidebar({
     const file = event.target.files[0];
     if (file) {
       const localURL = URL.createObjectURL(file);
-      console.log('localURl',localURL)
+      console.log("localURl", localURL);
 
       const newImages = [...images];
-      newImages[index] = { ...newImages[index], url:localURL,file };
+      newImages[index] = { ...newImages[index], url: localURL, file };
       setImages(newImages);
     }
-};
+  };
 
   const addImageSlot = () => {
     if (images.filter((image) => image.type === "reference").length < 4) {
@@ -248,27 +248,29 @@ export default function Sidebar({
   };
 
   const handleGenerate = async () => {
-    console.log('Images are:',images)
+    console.log("Images are:", images);
     const apiEndpoint = "https://api.runpod.ai/v2/scj1cqwix6bder/run";
     const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
 
     const uploadImage = async (file) => {
-      console.log('File is:',file,file.name)
+      console.log("File is:", file, file.name);
       const storageRef = ref(storage, file.name);
       await uploadBytes(storageRef, file);
       return await getDownloadURL(storageRef);
-  };
+    };
 
-  const newImages = await Promise.all(images.map(async (image) => {
-      if (image.file) {
-        console.log('Iamge files are:',image.file)
+    const newImages = await Promise.all(
+      images.map(async (image) => {
+        if (image.file) {
+          console.log("Iamge files are:", image.file);
           const url = await uploadImage(image.file);
-          return { ...image, url:url };
-      }
-      return image;
-  }));
+          return { ...image, url: url };
+        }
+        return image;
+      })
+    );
 
-  setImages(newImages);
+    setImages(newImages);
 
     const baseImage = newImages.find((img) => img.type === "base")?.url;
     const maskImage = newImages.find((img) => img.type === "mask")?.url;
@@ -324,7 +326,9 @@ export default function Sidebar({
         };
         break;
       case "Light_Simple":
-        const image_found = newImages.find((img) => img.type === "reference")?.url;
+        const image_found = newImages.find(
+          (img) => img.type === "reference"
+        )?.url;
         payload = {
           input: {
             model: image_found ? "Light_IPAdapter" : "Light_Simple",
@@ -460,21 +464,30 @@ export default function Sidebar({
         ></ModeOptions>
       </div>
       {/* Text Prompting Section */}
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold mb-2">Text Prompting</h2>
-        <textarea
-          className="resize-none w-full py-2 px-3 bg-customBG rounded-2xl"
-          rows="5"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-        ></textarea>
-      </div>
+      {model !== "Upscale_Detail" && (
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold mb-2">Text Prompting</h2>
+          <textarea
+            className="resize-none w-full py-2 px-3 bg-customBG rounded-2xl"
+            rows="5"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+          ></textarea>
+        </div>
+      )}
       {/* Visual Prompting Section */}
       <div className="mb-4">
-        <h2 className="text-sm font-semibold mb-2">Visual Prompting</h2>
+        <h2 className="text-sm font-semibold mb-2">
+          {model == "Upscale_Detail"
+            ? "Texture to upscale"
+            : "Visual Prompting"}
+        </h2>
         <div className="grid grid-cols-2 gap-4">
-          {images.map((image, index) =>
-            model === "Brush" || image.type !== "mask" ? (
+          {images.map((image, index) => {
+            if (model === "Upscale_Detail" && image.type === "reference") {
+              return null;
+            }
+            return model === "Brush" || image.type !== "mask" ? (
               <div key={index} className="relative">
                 <div className="bg-white p-4 rounded-2xl shadow border border-black border-2">
                   <label className="w-full mb-2 cursor-pointer block relative flex flex-col items-center">
@@ -556,9 +569,7 @@ export default function Sidebar({
                       />
                     </>
                   )}
-                {/* Display error message */}
-
-                {model == "Light_Simple" && image.type == "reference" && (
+                {model === "Light_Simple" && image.type === "reference" && (
                   <Slider
                     label="Weight"
                     max={0.8}
@@ -569,8 +580,8 @@ export default function Sidebar({
                   />
                 )}
               </div>
-            ) : null
-          )}
+            ) : null;
+          })}
 
           {/* Add More Images Button */}
           {model === "Brush" && (
@@ -591,8 +602,8 @@ export default function Sidebar({
           )}
         </div>
       </div>
-      {error && <p className="text-red-500">{error}</p>}{" "}
-      {model !== "Brush" && (
+      {error && <p className="text-red-500">{error}</p>}
+      {model === "Light_Simple" && (
         <>
           <div>
             <Slider
@@ -601,6 +612,7 @@ export default function Sidebar({
               value={sliderValues.lightSpot.strength}
               min={0}
               max={0.3}
+              initialValue={0}
               onChange={(value) =>
                 handleSliderChange("lightSpot", 0, "strength", value)
               }
@@ -625,7 +637,7 @@ export default function Sidebar({
               heading="Area light shape"
               selectedOption={selectedShape}
               setSelectedOption={setSelectedShape}
-            ></AreaOptions>
+            />
             <AreaOptions
               data={sizes}
               heading="Area light size"
@@ -633,10 +645,11 @@ export default function Sidebar({
               setSelectedOption={setSelectedSize}
               setShapeHeight={setShapeHeight}
               setShapeWidth={setShapeWidth}
-            ></AreaOptions>
+            />
           </div>
         </>
       )}
+
       {/* Light Angle Section  */}
       {/* <div className="mb-4">
         <h2 className="text-sm font-semibold mb-2">Light Angle</h2>
@@ -669,7 +682,7 @@ export default function Sidebar({
         </div>
       </div> */}
       {/* Light Spot Section */}
-      {model != "Brush" && (
+      {model == "Light_Simple" && (
         <div className="mb-4">
           <h2 className="text-sm font-semibold mb-2">Light Spot</h2>
           <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
@@ -771,24 +784,52 @@ export default function Sidebar({
         </div>
       )}
       {/* Generate Button */}
-      <div className="mb-4">
-        <button
-          className="w-full py-2 bg-black text-white rounded-xl"
-          onClick={handleGenerate}
-        >
-          Generate
-        </button>
-      </div>
+      {model !== "Upscale_Detail" && (
+        <div className="mb-4">
+          <button
+            className="w-full py-2 bg-black text-white rounded-xl"
+            onClick={handleGenerate}
+          >
+            Generate
+          </button>
+        </div>
+      )}
       {/* Enhance Textarea */}
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold mb-2">Enhance</h2>
-        <textarea
-          className="resize-none w-full py-2 px-3 bg-customBG rounded-2xl"
-          rows="4"
-          value={enhancePrompt}
-          onChange={(e) => setEnhancePrompt(e.target.value)}
-        ></textarea>
-      </div>
+      {model !== "Upscale_Detail" && (
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold mb-2">Enhance</h2>
+          <textarea
+            className="resize-none w-full py-2 px-3 bg-customBG rounded-2xl"
+            rows="4"
+            value={enhancePrompt}
+            onChange={(e) => setEnhancePrompt(e.target.value)}
+          ></textarea>
+        </div>
+      )}
+      {model == "Upscale_Detail" && (
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold mb-2">
+            Describe the material or texture:
+          </h2>
+          <textarea
+            className="resize-none w-full py-2 px-3 bg-customBG rounded-2xl"
+            rows="4"
+            value={enhancePrompt}
+            onChange={(e) => setEnhancePrompt(e.target.value)}
+          ></textarea>
+        </div>
+      )}
+      {model == "Upscale_Detail" && (
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold mb-2">Details to enhance</h2>
+          <textarea
+            className="resize-none w-full py-2 px-3 bg-customBG rounded-2xl"
+            rows="4"
+            value={enhancePrompt}
+            onChange={(e) => setEnhancePrompt(e.target.value)}
+          ></textarea>
+        </div>
+      )}
       {/* Upscale Button */}
       <div className="mb-8">
         <button
@@ -798,6 +839,14 @@ export default function Sidebar({
           Upscale
         </button>
       </div>
+      {model == "Upscale_Detail" && (
+        <button
+          className="w-full py-2 bg-black text-white rounded-xl"
+          onClick={handleUpscale}
+        >
+          Repeat Upsclae
+        </button>
+      )}
     </div>
   );
 }

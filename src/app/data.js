@@ -46,8 +46,8 @@ export const Modes = [
     name: "Light_Simple",
     icon: "/assets/images/Light.png",
   },
-  // {
-  //     'name':'Detailer',
-  //     'icon':'/assets/images/Brush.png'
-  // }
+  {
+      name:'Upscale_Detail',
+      icon:'/assets/images/Brush.png'
+  }
 ];
