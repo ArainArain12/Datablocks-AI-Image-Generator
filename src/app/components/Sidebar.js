@@ -1,288 +1,316 @@
-import { useEffect, useRef, useState } from 'react';
-import Slider from './Slider';
-import { storage, ref, uploadBytes, getDownloadURL } from '../utils/firebaseConfig';
-import axios from 'axios';
-
-export default function Sidebar() {
-  const [images, setImages] = useState([null, null, null, null]);
+import { useEffect, useRef, useState } from "react";
+import Slider from "./Slider";
+import {
+  storage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from "../utils/firebaseConfig";
+import axios from "axios";
+import AreaOptions from "../utils/areaoptions";
+import { shapes, sizes, Modes } from "../data";
+import ModeOptions from "../utils/modeoptions";
+export default function Sidebar({
+  outputImageUrl,
+  setOutputImageUrl,
+  setGenerateText,
+}) {
+  const [images, setImages] = useState([
+    { type: "base", url: "" },
+    { type: "mask", url: "" },
+    { type: "reference", url: "" },
+  ]);
+  const [sliderValues, setSliderValues] = useState({
+    reference: [{ strength: 1, start: 0, end: 1 }],
+    lightSpot: { hardness: 0.5, multiplier: 0.2 },
+    lightIPAdapter: { weight: 0.5 },
+  });
   const [spot, setSpot] = useState({ x: 150, y: 150 });
   const canvasRef = useRef(null);
   const canvasRef1 = useRef(null);
   const [angle, setAngle] = useState(0);
-  const [baseImageURL, setBaseImageURL] = useState('');
-  const [maskImageURL, setMaskImageURL] = useState('');
-  const [referenceImageURLs, setReferenceImageURLs] = useState([]);
-  const [model, setModel] = useState('Brush');
-  const [prompt, setPrompt] = useState('');
+  const [model, setModel] = useState("Brush");
+  const [prompt, setPrompt] = useState("");
   const [steps, setSteps] = useState(40);
   const [cfg, setCfg] = useState(10);
   const [denoise, setDenoise] = useState(0.7);
-  const [multiplier, setMultiplier] = useState(0.18);
-  const [hardness, setHardness] = useState(0);
-  const [shapeHeight, setShapeHeight] = useState(256);
-  const [shapeWidth, setShapeWidth] = useState(256);
+  const [shapeHeight, setShapeHeight] = useState(50);
+  const [shapeWidth, setShapeWidth] = useState(50);
   const [x, setX] = useState(300);
   const [y, setY] = useState(300);
   const [referenceWeight, setReferenceWeight] = useState(0.3);
-  const [materialPrompt, setMaterialPrompt] = useState('');
-  const [enhancePrompt, setEnhancePrompt] = useState('');
+  const [materialPrompt, setMaterialPrompt] = useState("");
+  const [enhancePrompt, setEnhancePrompt] = useState("");
+  const [selectedShape, setSelectedShape] = useState("circle");
+  const [selectedSize, setSelectedSize] = useState("S");
+  const [polling, setPolling] = useState(true);
+  const referenceCount = images.filter(
+    (image) => image.type === "reference"
+  ).length;
 
   useEffect(() => {
-    const canvas = canvasRef1.current;
-    const ctx = canvas.getContext('2d');
-    let isDragging = false;
+    if (model !== "Brush") {
+      const canvas = canvasRef1.current;
+      const ctx = canvas.getContext("2d");
+      let isDragging = false;
 
-    const draw = (spot) => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const draw = (spot) => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const gradient = ctx.createRadialGradient(spot.x, spot.y, 0, spot.x, spot.y, 100);
-      gradient.addColorStop(0, 'white');
-      gradient.addColorStop(1, 'black');
+        const gradient = ctx.createRadialGradient(
+          spot.x,
+          spot.y,
+          0,
+          spot.x,
+          spot.y,
+          100
+        );
+        gradient.addColorStop(0, "white");
+        gradient.addColorStop(1, "black");
 
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    };
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      };
 
-    const handleMouseDown = (e) => {
-      isDragging = true;
-      updateSpot(e);
-    };
-
-    const handleMouseMove = (e) => {
-      if (isDragging) {
+      const handleMouseDown = (e) => {
+        isDragging = true;
         updateSpot(e);
-      }
-    };
+      };
 
-    const handleMouseUp = () => {
-      isDragging = false;
-    };
+      const handleMouseMove = (e) => {
+        if (isDragging) {
+          updateSpot(e);
+        }
+      };
 
-    const updateSpot = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      setSpot({ x, y });
-      draw({ x, y });
-    };
+      const handleMouseUp = () => {
+        isDragging = false;
+      };
 
-    canvas.addEventListener('mousedown', handleMouseDown);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseup', handleMouseUp);
-    canvas.addEventListener('mouseleave', handleMouseUp);
+      const updateSpot = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        setSpot({ x, y });
+        draw({ x, y });
+      };
 
-    draw(spot);
+      canvas.addEventListener("mousedown", handleMouseDown);
+      canvas.addEventListener("mousemove", handleMouseMove);
+      canvas.addEventListener("mouseup", handleMouseUp);
+      canvas.addEventListener("mouseleave", handleMouseUp);
 
-    return () => {
-      canvas.removeEventListener('mousedown', handleMouseDown);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseup', handleMouseUp);
-      canvas.removeEventListener('mouseleave', handleMouseUp);
-    };
-  }, [spot]);
+      // Initial draw
+      draw(spot);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let isDragging = false;
+      // Cleanup on unmount or when model changes
+      return () => {
+        canvas.removeEventListener("mousedown", handleMouseDown);
+        canvas.removeEventListener("mousemove", handleMouseMove);
+        canvas.removeEventListener("mouseup", handleMouseUp);
+        canvas.removeEventListener("mouseleave", handleMouseUp);
+      };
+    }
+  }, [spot, model]); // Add model to the dependency array
 
-    const draw = (angle) => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.beginPath();
-      ctx.moveTo(canvas.width / 2, canvas.height / 2);
-      const x = canvas.width / 2 + (canvas.width / 2 - 10) * Math.cos(angle);
-      const y = canvas.height / 2 - (canvas.height / 2 - 10) * Math.sin(angle);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-      ctx.closePath();
-      ctx.beginPath();
-      ctx.arc(x, y, 5, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.closePath();
-    };
+  // useEffect(() => {
+  //   const canvas = canvasRef.current;
+  //   const ctx = canvas.getContext('2d');
+  //   let isDragging = false;
 
-    const handleMouseDown = (e) => {
-      isDragging = true;
-      updateAngle(e);
-    };
+  //   const draw = (angle) => {
+  //     ctx.clearRect(0, 0, canvas.width, canvas.height);
+  //     ctx.beginPath();
+  //     ctx.moveTo(canvas.width / 2, canvas.height / 2);
+  //     const x = canvas.width / 2 + (canvas.width / 2 - 10) * Math.cos(angle);
+  //     const y = canvas.height / 2 - (canvas.height / 2 - 10) * Math.sin(angle);
+  //     ctx.lineTo(x, y);
+  //     ctx.stroke();
+  //     ctx.closePath();
+  //     ctx.beginPath();
+  //     ctx.arc(x, y, 5, 0, 2 * Math.PI);
+  //     ctx.fill();
+  //     ctx.closePath();
+  //   };
 
-    const handleMouseMove = (e) => {
-      if (isDragging) {
-        updateAngle(e);
-      }
-    };
+  //   const handleMouseDown = (e) => {
+  //     isDragging = true;
+  //     updateAngle(e);
+  //   };
 
-    const handleMouseUp = () => {
-      isDragging = false;
-    };
+  //   const handleMouseMove = (e) => {
+  //     if (isDragging) {
+  //       updateAngle(e);
+  //     }
+  //   };
 
-    const updateAngle = (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left - canvas.width / 2;
-      const y = canvas.height / 2 - (e.clientY - rect.top);
-      const angle = Math.atan2(y, x);
-      setAngle(angle);
-      draw(angle);
-    };
+  //   const handleMouseUp = () => {
+  //     isDragging = false;
+  //   };
 
-    canvas.addEventListener('mousedown', handleMouseDown);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseup', handleMouseUp);
-    canvas.addEventListener('mouseleave', handleMouseUp);
+  //   const updateAngle = (e) => {
+  //     const rect = canvas.getBoundingClientRect();
+  //     const x = e.clientX - rect.left - canvas.width / 2;
+  //     const y = canvas.height / 2 - (e.clientY - rect.top);
+  //     const angle = Math.atan2(y, x);
+  //     setAngle(angle);
+  //     draw(angle);
+  //   };
 
-    draw(angle);
+  //   canvas.addEventListener('mousedown', handleMouseDown);
+  //   canvas.addEventListener('mousemove', handleMouseMove);
+  //   canvas.addEventListener('mouseup', handleMouseUp);
+  //   canvas.addEventListener('mouseleave', handleMouseUp);
 
-    return () => {
-      canvas.removeEventListener('mousedown', handleMouseDown);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseup', handleMouseUp);
-      canvas.removeEventListener('mouseleave', handleMouseUp);
-    };
-  }, [angle]);
+  //   draw(angle);
 
-  const handleImageChange = async (index, event) => {
+  //   return () => {
+  //     canvas.removeEventListener('mousedown', handleMouseDown);
+  //     canvas.removeEventListener('mousemove', handleMouseMove);
+  //     canvas.removeEventListener('mouseup', handleMouseUp);
+  //     canvas.removeEventListener('mouseleave', handleMouseUp);
+  //   };
+  // }, [angle]);
+
+  const handleImageChange = (index, event) => {
     const file = event.target.files[0];
     if (file) {
-      const storageRef = ref(storage, file.name);
-      await uploadBytes(storageRef, file);
-      const fileURL = await getDownloadURL(storageRef);
+      const localURL = URL.createObjectURL(file);
+      console.log('localURl',localURL)
 
       const newImages = [...images];
-      newImages[index] = file;
+      newImages[index] = { ...newImages[index], url:localURL,file };
       setImages(newImages);
-
-      if (index === 0) {
-        setBaseImageURL(fileURL);
-      } else {
-        const newReferenceImageURLs = [...referenceImageURLs];
-        newReferenceImageURLs[index - 1] = fileURL;
-        setReferenceImageURLs(newReferenceImageURLs);
-      }
     }
-  };
+};
 
   const addImageSlot = () => {
-    setImages([...images, null]);
+    if (images.filter((image) => image.type === "reference").length < 4) {
+      setImages([...images, { type: "reference", url: "" }]);
+      setSliderValues((prevValues) => ({
+        ...prevValues,
+        reference: [...prevValues.reference, { strength: 0, start: 0, end: 0 }],
+      }));
+    } else {
+      alert("Only 4 reference images can be added!");
+    }
   };
 
   const removeImageSlot = (index) => {
-    const newImages = images.filter((_, i) => i !== index);
-    setImages(newImages);
-    if (index === 0) {
-      setBaseImageURL('');
+    if (images.length > 3 || model !== "Brush") {
+      const newImages = images.filter((_, i) => i !== index);
+      setImages(newImages);
+      const newSliderValues = { ...sliderValues };
+      newSliderValues.reference = newSliderValues.reference.filter(
+        (_, i) => i !== index - 2
+      );
+      setSliderValues(newSliderValues);
     } else {
-      const newReferenceImageURLs = referenceImageURLs.filter((_, i) => i !== index - 1);
-      setReferenceImageURLs(newReferenceImageURLs);
+      alert("At least one reference image is needed in brush mode!");
     }
   };
+  const [error, setError] = useState("");
+  const handleSliderChange = (type, index, sliderName, value) => {
+    setSliderValues((prevValues) => {
+      const newValues = { ...prevValues };
+      const floatValue = parseFloat(value);
 
-  const debouncedFetch = (fn, delay) => {
-    let timerId;
-    return (...args) => {
-      clearTimeout(timerId);
-      timerId = setTimeout(() => {
-        fn(...args);
-      }, delay);
-    };
-  };
+      if (type === "reference") {
+        const updatedReference = [...newValues.reference];
+        const currentRef = updatedReference[index];
 
-  const handleRealtimeChange = async (payload) => {
-    const apiEndpoint = 'https://api.runpod.ai/v2/it1xtugfs09gfy/runsync';
-    const bearerToken = 'MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0';
+        if (sliderName === "start" && floatValue >= currentRef.end) {
+          setError("Start value must be less than End value.");
+          return prevValues;
+        } else if (sliderName === "end" && floatValue <= currentRef.start) {
+          setError("End value must be greater than Start value.");
+          return prevValues;
+        } else {
+          setError("");
+          updatedReference[index] = { ...currentRef, [sliderName]: floatValue };
+        }
 
-    try {
-      const response = await axios.post(apiEndpoint, payload, {
-        headers: {
-          'Authorization': `Bearer ${bearerToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      console.log(response.data);
-    } catch (error) {
-      console.error('Error generating image:', error);
-    }
-  };
-
-  const handleSliderChange = (type, value) => {
-    let payload = {};
-
-    switch (type) {
-      case 'Light_Angle':
-        payload = {
-          input: {
-            model: "Light_IPAdapter",
-            prompt: prompt,
-            input_image: baseImageURL,
-            multiplier: multiplier,
-            hardness: hardness,
-            shape_height: shapeHeight,
-            shape_width: shapeWidth,
-            shape: 'square',
-            x: x,
-            y: y,
-            reference_image: referenceImageURLs[0],
-            reference_weight: referenceWeight,
-          },
+        newValues.reference = updatedReference;
+      } else if (type === "lightSpot") {
+        newValues.lightSpot = {
+          ...newValues.lightSpot,
+          [sliderName]: floatValue,
         };
-        break;
-      case 'Light_Spot':
-        payload = {
-          input: {
-            model: "Light_IPAdapter",
-            prompt: prompt,
-            input_image: baseImageURL,
-            multiplier: multiplier,
-            hardness: hardness,
-            shape_height: shapeHeight,
-            shape_width: shapeWidth,
-            shape: 'square',
-            x: x,
-            y: y,
-            reference_image: referenceImageURLs[0],
-            reference_weight: referenceWeight,
-          },
+      } else if (type === "lightIPAdapter") {
+        newValues.lightIPAdapter = {
+          ...newValues.lightIPAdapter,
+          [sliderName]: floatValue,
         };
-        break;
-      case 'Depth_Map':
-        payload = {
-          input: {
-            model: "Depth_Map",
-            input_image: baseImageURL,
-            depth_map_params: {
-              strength: value.strength,
-              starts: value.starts,
-              ends: value.ends,
-            },
-          },
-        };
-        break;
-      case 'Edges':
-        payload = {
-          input: {
-            model: "Edges",
-            input_image: baseImageURL,
-            edges_params: {
-              strength: value.strength,
-              starts: value.starts,
-              ends: value.ends,
-            },
-          },
-        };
-        break;
-      default:
-        break;
-    }
+      }
 
-    debouncedFetch(handleRealtimeChange, 1000)(payload);
+      return newValues;
+    });
   };
 
   const handleGenerate = async () => {
+    console.log('Images are:',images)
+    const apiEndpoint = "https://api.runpod.ai/v2/mc024os1pm3iay/run";
+    const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
+
+    const uploadImage = async (file) => {
+      console.log('File is:',file,file.name)
+      const storageRef = ref(storage, file.name);
+      await uploadBytes(storageRef, file);
+      return await getDownloadURL(storageRef);
+  };
+
+  const newImages = await Promise.all(images.map(async (image) => {
+      if (image.file) {
+        console.log('Iamge files are:',image.file)
+          const url = await uploadImage(image.file);
+          return { ...image, url:url };
+      }
+      return image;
+  }));
+
+  setImages(newImages);
+
+    const baseImage = newImages.find((img) => img.type === "base")?.url;
+    const maskImage = newImages.find((img) => img.type === "mask")?.url;
+
+    if (model === "Brush") {
+      if (!baseImage || !maskImage) {
+        alert("Base image and mask image are required for the Brush model.");
+        return;
+      }
+    } else {
+      if (!baseImage) {
+        alert("Base image is required.");
+        return;
+      }
+    }
+
     let payload = {};
-    const apiEndpoint = 'https://api.runpod.ai/v2/it1xtugfs09gfy/runsync';
-    const bearerToken = 'MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0';
+
+    let referenceImages = newImages
+      .filter((image) => image.type === "reference")
+      .map((image, index) => ({
+        image: image.url,
+        strength: sliderValues.reference[index]?.strength || 0,
+        start_at: sliderValues.reference[index]?.start || 0,
+        end_at: sliderValues.reference[index]?.end || 0,
+        mask: maskImage || "",
+      }));
+
+    const defaultReferenceImage = {
+      image: baseImage || "",
+      strength: 0,
+      start_at: 0,
+      end_at: 1,
+      mask: maskImage || "",
+    };
+
+    while (referenceImages.length < 4) {
+      referenceImages.push(defaultReferenceImage);
+    }
 
     switch (model) {
-      case 'Brush':
+      case "Brush":
         payload = {
           input: {
             model: "Brush",
@@ -290,63 +318,44 @@ export default function Sidebar() {
             steps: steps,
             cfg: cfg,
             denoise: denoise,
-            base_image: baseImageURL,
-            mask_image: maskImageURL,
-            ip_adapter_configurations: referenceImageURLs.map((url) => ({
-              image: url,
-              strength: 1,
-              start_at: 0,
-              end_at: 1,
-            })),
+            base_image: baseImage,
+            ip_adapter_configurations: referenceImages,
           },
         };
         break;
-      case 'Light_Simple':
+      case "Light_Simple":
+        const image_found = newImages.find((img) => img.type === "reference")?.url;
         payload = {
           input: {
-            model: "Light_Simple",
+            model: image_found ? "Light_IPAdapter" : "Light_Simple",
             prompt: prompt,
-            input_image: baseImageURL,
-            multiplier: multiplier,
-            hardness: hardness,
+            input_image: baseImage,
+            multiplier: sliderValues.lightSpot["multiplier"],
+            hardness: sliderValues.lightSpot["hardness"],
             shape_height: shapeHeight,
             shape_width: shapeWidth,
-            shape: 'square',
-            x: x,
-            y: y,
+            shape: selectedShape || "circle",
+            x: spot["x"],
+            y: spot["y"],
+            ...(image_found && {
+              reference_image: image_found,
+              reference_weight: sliderValues.lightIPAdapter["weight"],
+            }),
           },
         };
         break;
-      case 'Light_IPAdapter':
+      case "Upscale_Simple":
         payload = {
           input: {
-            model: "Light_IPAdapter",
-            prompt: prompt,
-            input_image: baseImageURL,
-            multiplier: multiplier,
-            hardness: hardness,
-            shape_height: shapeHeight,
-            shape_width: shapeWidth,
-            shape: 'square',
-            x: x,
-            y: y,
-            reference_image: referenceImageURLs[0],
-            reference_weight: referenceWeight,
-          },
-        };
-        break;
-      case 'Upscale_Simple':
-        payload = {
-          input: {
-            input_image: baseImageURL,
+            input_image: baseImage,
             model: "Upscale_Simple",
           },
         };
         break;
-      case 'Upscale_Detail':
+      case "Upscale_Detail":
         payload = {
           input: {
-            input_image: baseImageURL,
+            input_image: baseImage,
             model: "Upscale_Detail",
             material_prompt: materialPrompt,
             enhance_prompt: enhancePrompt,
@@ -354,19 +363,88 @@ export default function Sidebar() {
         };
         break;
       default:
-        break;
+        console.error("Invalid model selected");
+        return;
     }
+
+    console.log("Payload:", payload);
 
     try {
       const response = await axios.post(apiEndpoint, payload, {
         headers: {
-          'Authorization': `Bearer ${bearerToken}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${bearerToken}`,
+          "Content-Type": "application/json",
         },
       });
-      console.log(response.data);
+
+      console.log("Response:", response.data);
+
+      const jobId = response.data.id;
+      setPolling(true);
+      setGenerateText("Generating Image.........");
+      pollForStatus(jobId);
     } catch (error) {
-      console.error('Error generating image:', error);
+      console.error("Error generating image:", error);
+    }
+  };
+
+  const pollForStatus = async (jobId) => {
+    const apiStatusEndpoint = `https://api.runpod.ai/v2/mc024os1pm3iay/status/${jobId}`;
+    const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
+
+    try {
+      const response = await axios.get(apiStatusEndpoint, {
+        headers: {
+          Authorization: `Bearer ${bearerToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("Status Response:", response.data);
+
+      if (response.data.status === "COMPLETED") {
+        setGenerateText(null);
+        setOutputImageUrl(response.data.output[0]);
+        setPolling(false);
+      } else if (polling) {
+        setTimeout(() => pollForStatus(jobId), 5000);
+      }
+    } catch (error) {
+      console.error("Error polling status:", error);
+      setPolling(false);
+      setGenerateText(null);
+    }
+  };
+
+  const handleUpscale = async () => {
+    if (outputImageUrl) {
+      let payload = {};
+      payload = {
+        input: {
+          model: "Upscale_Simple",
+          input_image: outputImageUrl,
+        },
+      };
+      const apiEndpoint = "https://api.runpod.ai/v2/run/mc024os1pm3iay";
+      const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
+      try {
+        const response = await axios.post(apiEndpoint, payload, {
+          headers: {
+            Authorization: `Bearer ${bearerToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        console.log("Response:", response.data);
+
+        const jobId = response.data.id;
+        setPolling(true);
+        pollForStatus(jobId);
+      } catch (error) {
+        console.error("Error generating image:", error);
+      }
+    } else {
+      alert("Cannot use upscale!");
     }
   };
 
@@ -374,20 +452,13 @@ export default function Sidebar() {
     <div className="w-1/4 p-4 bg-white overflow-y-auto h-screen mb-4 pb-20">
       {/* Mode Selection */}
       <div className="mb-4">
-        <h2 className="text-sm font-semibold mb-2">Mode</h2>
-        <select
-          className="w-full py-2 px-3 bg-customBG rounded-2xl"
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-        >
-          <option value="Brush">Brush</option>
-          <option value="Light_Simple">Light Simple</option>
-          <option value="Light_IPAdapter">Light IP Adapter</option>
-          <option value="Upscale_Simple">Simple Upscale</option>
-          <option value="Upscale_Detail">Detailed Upscale</option>
-        </select>
+        <ModeOptions
+          data={Modes}
+          heading={"Modes"}
+          selectedOption={model}
+          setSelectedOption={setModel}
+        ></ModeOptions>
       </div>
-
       {/* Text Prompting Section */}
       <div className="mb-4">
         <h2 className="text-sm font-semibold mb-2">Text Prompting</h2>
@@ -398,56 +469,176 @@ export default function Sidebar() {
           onChange={(e) => setPrompt(e.target.value)}
         ></textarea>
       </div>
-
       {/* Visual Prompting Section */}
       <div className="mb-4">
         <h2 className="text-sm font-semibold mb-2">Visual Prompting</h2>
         <div className="grid grid-cols-2 gap-4">
-          <div className="relative">
-            <div className='bg-white p-4 rounded-2xl shadow border border-black border-2'>
-              <label className="w-full mb-2 cursor-pointer block relative flex flex-col items-center">
-                <input type="file" className="hidden" onChange={(event) => handleImageChange(0, event)} />
-                <img src="/assets/images/upload.png" alt="Upload Image" className="mx-auto" style={{ width: '50%' }} />
-                <span className="mt-2 text-sm">Your Input Image</span>
-              </label>
-            </div>
-            <Slider label="Image Strength" />
-          </div>
+          {images.map((image, index) =>
+            model === "Brush" || image.type !== "mask" ? (
+              <div key={index} className="relative">
+                <div className="bg-white p-4 rounded-2xl shadow border border-black border-2">
+                  <label className="w-full mb-2 cursor-pointer block relative flex flex-col items-center">
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={(event) => handleImageChange(index, event)}
+                    />
+                    <img
+                      src={image.url || "/assets/images/upload.png"}
+                      alt="Upload Image"
+                      className="mx-auto"
+                      style={{ width: "50%" }}
+                    />
+                    <span className="mt-2 text-sm">
+                      {image.type === "base"
+                        ? "Your Input Image"
+                        : image.type === "mask"
+                        ? "Your Mask Image"
+                        : `Image Ref # ${index - 1}`}
+                    </span>
+                  </label>
+                  {image.type !== "base" &&
+                    image.type !== "mask" &&
+                    referenceCount > 1 && (
+                      <img
+                        onClick={() => removeImageSlot(index)}
+                        className="absolute top-2 right-2 bg-transparent text-white rounded-2xl cursor-pointer"
+                        src="/assets/images/delete.png"
+                        style={{ width: "20%" }}
+                        alt="Delete"
+                      />
+                    )}
+                </div>
+                {model === "Brush" &&
+                  image.type !== "base" &&
+                  image.type !== "mask" && (
+                    <>
+                      <Slider
+                        label="Strength"
+                        value={sliderValues.reference[index - 2]?.strength || 0}
+                        min={0.8}
+                        max={1.3}
+                        initialValue={1}
+                        onChange={(value) =>
+                          handleSliderChange(
+                            "reference",
+                            index - 2,
+                            "strength",
+                            value
+                          )
+                        }
+                      />
+                      <Slider
+                        label="Start"
+                        value={sliderValues.reference[index - 2]?.start || 0}
+                        initialValue={0}
+                        onChange={(value) =>
+                          handleSliderChange(
+                            "reference",
+                            index - 2,
+                            "start",
+                            value
+                          )
+                        }
+                      />
+                      <Slider
+                        label="End"
+                        value={sliderValues.reference[index - 2]?.end || 0}
+                        initialValue={1}
+                        onChange={(value) =>
+                          handleSliderChange(
+                            "reference",
+                            index - 2,
+                            "end",
+                            value
+                          )
+                        }
+                      />
+                    </>
+                  )}
+                {/* Display error message */}
 
-          {images.map((image, index) => (
-            <div key={index} className="relative">
-              <div className='bg-white p-4 rounded-2xl shadow border border-black border-2'>
-                <label className="w-full mb-2 cursor-pointer block relative flex flex-col items-center">
-                  <input type="file" className="hidden" onChange={(event) => handleImageChange(index, event)} />
-                  <img src="/assets/images/upload.png" alt="Upload Image" className="mx-auto" style={{ width: '50%' }} />
-                  <span className="mt-2 text-sm">Image Ref # {index + 1}</span>
-                </label>
-                <img
-                  onClick={() => removeImageSlot(index)}
-                  className="absolute top-2 right-2 bg-transparent text-white rounded-2xl cursor-pointer"
-                  src="/assets/images/delete.png"
-                  style={{ width: '20%' }}
-                  alt="Delete"
-                />
+                {model == "Light_Simple" && image.type == "reference" && (
+                  <Slider
+                    label="Weight"
+                    max={0.8}
+                    value={sliderValues.lightIPAdapter?.weight || 0}
+                    onChange={(value) =>
+                      handleSliderChange("lightIPAdapter", 0, "weight", value)
+                    }
+                  />
+                )}
               </div>
-              <Slider label="Image Strength" />
-            </div>
-          ))}
+            ) : null
+          )}
 
           {/* Add More Images Button */}
-          <div className="relative">
-            <div className='bg-white p-4 rounded-2xl shadow border border-black border-2'>
-              <label className="w-full mb-2 cursor-pointer block relative flex flex-col items-center">
-                <img onClick={addImageSlot} src="/assets/images/add.png" alt="Upload Image" className="mx-auto" style={{ width: '50%' }} />
-                <span className="mt-2 text-sm">Add More</span>
-              </label>
+          {model === "Brush" && (
+            <div className="relative">
+              <div className="bg-white p-4 rounded-2xl shadow border border-black border-2">
+                <label className="w-full mb-2 cursor-pointer block relative flex flex-col items-center">
+                  <img
+                    onClick={addImageSlot}
+                    src="/assets/images/add.png"
+                    alt="Add More"
+                    className="mx-auto"
+                    style={{ width: "50%" }}
+                  />
+                  <span className="mt-2 text-sm">Add More</span>
+                </label>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
+      {error && <p className="text-red-500">{error}</p>}{" "}
+      {model !== "Brush" && (
+        <>
+          <div>
+            <Slider
+              label="Light Multiplier"
+              className="mb-2"
+              value={sliderValues.lightSpot.strength}
+              min={0}
+              max={0.3}
+              onChange={(value) =>
+                handleSliderChange("lightSpot", 0, "strength", value)
+              }
+            />
+            <Slider
+              label="Light Hardness"
+              className="mb-2"
+              min={0}
+              max={0.2}
+              step={0.01}
+              initialValue={0.18}
+              value={sliderValues.lightSpot.start}
+              onChange={(value) =>
+                handleSliderChange("lightSpot", 0, "start", value)
+              }
+            />
+          </div>
 
-      {/* Light Angle Section */}
-      <div className="mb-4">
+          <div className="mt-14 mb-12">
+            <AreaOptions
+              data={shapes}
+              heading="Area light shape"
+              selectedOption={selectedShape}
+              setSelectedOption={setSelectedShape}
+            ></AreaOptions>
+            <AreaOptions
+              data={sizes}
+              heading="Area light size"
+              selectedOption={selectedSize}
+              setSelectedOption={setSelectedSize}
+              setShapeHeight={setShapeHeight}
+              setShapeWidth={setShapeWidth}
+            ></AreaOptions>
+          </div>
+        </>
+      )}
+      {/* Light Angle Section  */}
+      {/* <div className="mb-4">
         <h2 className="text-sm font-semibold mb-2">Light Angle</h2>
         <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
           <div className="p-0 w-full bg-customBG1 flex items-center justify-center rounded-lg">
@@ -476,42 +667,25 @@ export default function Sidebar() {
             onChange={(value) => handleSliderChange('Light_Angle', { ends: value })}
           />
         </div>
-      </div>
-
+      </div> */}
       {/* Light Spot Section */}
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold mb-2">Light Spot</h2>
-        <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
-          <div className="p-0 w-full bg-customBG1 flex items-center justify-center rounded-lg">
-            <canvas
-              ref={canvasRef1}
-              width={300}
-              height={300}
-              style={{ backgroundColor: '#333', borderRadius: '8px' }}
-            />
+      {model != "Brush" && (
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold mb-2">Light Spot</h2>
+          <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
+            <div className="p-0 w-full bg-customBG1 flex items-center justify-center rounded-lg">
+              <canvas
+                ref={canvasRef1}
+                width={300}
+                height={300}
+                style={{ backgroundColor: "#333", borderRadius: "8px" }}
+              />
+            </div>
           </div>
         </div>
-        <div>
-          <Slider
-            label="Strength"
-            className="mb-2"
-            onChange={(value) => handleSliderChange('Light_Spot', { strength: value })}
-          />
-          <Slider
-            label="Starts"
-            className="mb-2"
-            onChange={(value) => handleSliderChange('Light_Spot', { starts: value })}
-          />
-          <Slider
-            label="Ends"
-            className="mb-2"
-            onChange={(value) => handleSliderChange('Light_Spot', { ends: value })}
-          />
-        </div>
-      </div>
-
+      )}
       {/* Depth Map Section */}
-      <div className="mb-4">
+      {/* <div className="mb-4">
         <h2 className="text-sm font-semibold mb-2">Depth Map</h2>
         <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
           <div className="p-20 w-full bg-customBG1 flex items-center justify-center rounded-lg">
@@ -535,10 +709,9 @@ export default function Sidebar() {
             onChange={(value) => handleSliderChange('Depth_Map', { ends: value })}
           />
         </div>
-      </div>
-
+      </div> */}
       {/* Edges Section */}
-      <div className="mb-4">
+      {/* <div className="mb-4">
         <h2 className="text-sm font-semibold mb-2">Edges</h2>
         <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
           <div className="p-20 w-full bg-customBG1 flex items-center rounded-lg justify-center">
@@ -562,35 +735,50 @@ export default function Sidebar() {
             onChange={(value) => handleSliderChange('Edges', { ends: value })}
           />
         </div>
-      </div>
-
+      </div> */}
       {/* Render Engine Section */}
-      <div className="mb-4">
-        <h2 className="text-sm font-semibold mb-2">Render Engine</h2>
-        <div>
-          <Slider
-            label="CFG"
-            className="mb-2"
-            onChange={(value) => handleSliderChange('Render_Engine', { cfg: value })}
-          />
-          <Slider
-            label="Steps"
-            className="mb-2"
-            onChange={(value) => handleSliderChange('Render_Engine', { steps: value })}
-          />
-          <Slider
-            label="Denoise"
-            className="mb-2"
-            onChange={(value) => handleSliderChange('Render_Engine', { denoise: value })}
-          />
+      {model == "Brush" && (
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold mb-2">Render Engine</h2>
+          <div>
+            <Slider
+              label="CFG"
+              className="mb-2"
+              min={8}
+              max={12}
+              step={1}
+              initialValue={10}
+              onChange={(value) => setCfg(parseFloat(value))}
+            />
+            <Slider
+              label="Steps"
+              className="mb-2"
+              min={20}
+              max={40}
+              step={1}
+              initialValue={40}
+              onChange={(value) => setSteps(parseFloat(value))}
+            />
+            <Slider
+              label="Denoise"
+              min={0}
+              max={1}
+              initialValue={0.7}
+              className="mb-2"
+              onChange={(value) => setDenoise(parseFloat(value))}
+            />
+          </div>
         </div>
-      </div>
-
+      )}
       {/* Generate Button */}
       <div className="mb-4">
-        <button className="w-full py-2 bg-black text-white rounded-xl" onClick={handleGenerate}>Generate</button>
+        <button
+          className="w-full py-2 bg-black text-white rounded-xl"
+          onClick={handleGenerate}
+        >
+          Generate
+        </button>
       </div>
-
       {/* Enhance Textarea */}
       <div className="mb-4">
         <h2 className="text-sm font-semibold mb-2">Enhance</h2>
@@ -601,10 +789,14 @@ export default function Sidebar() {
           onChange={(e) => setEnhancePrompt(e.target.value)}
         ></textarea>
       </div>
-
       {/* Upscale Button */}
       <div className="mb-8">
-        <button className="w-full py-2 bg-black text-white rounded-xl">Upscale</button>
+        <button
+          className="w-full py-2 bg-black text-white rounded-xl"
+          onClick={handleUpscale}
+        >
+          Upscale
+        </button>
       </div>
     </div>
   );
