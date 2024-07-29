@@ -52,6 +52,6 @@ export const Modes = [
   },
   {
       name:'Upscale_Detail',
-      icon:'/assets/images/Brush.png'
+      icon:'/assets/images/upscale.png'
   },
 ];

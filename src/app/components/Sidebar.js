@@ -27,7 +27,9 @@ export default function Sidebar({
     reference: [{ strength: 1, start: 0, end: 1 }],
     lightSpot: { hardness: 0.5, multiplier: 0.2 },
     lightIPAdapter: { weight: 0.5 },
-    Pencil:{strength:0}
+    Pencil:[{ strength: 0 }, { strength: 0 }, { strength: 0 }],
+    depth:{strength:0.94},
+    edges:{strength:0.20}
   });
   const [spot, setSpot] = useState({ x: 150, y: 150 });
   const canvasRef = useRef(null);
@@ -68,9 +70,7 @@ export default function Sidebar({
 
   // const [images, setImages] = useState(initializeImages());
   const [images, setImages] = useState([
-    { type: "base", url: "" },
-    { type: "mask", url: "" },
-    { type: "reference", url: "" },
+
   ]);
   const referenceCount = images.filter(
     (image) => image.type === "reference"
@@ -305,8 +305,27 @@ export default function Sidebar({
         
       }
       else if (type === "Pencil") {
-        newValues.Pencil = {
-          ...newValues.Pencil,
+        console.log('Slider type Pencil Called;')
+        console.log(floatValue)
+        console.log('index',index)
+        const updatedPencil = [...newValues.Pencil];
+        updatedPencil[index] = {
+          ...updatedPencil[index],
+          [sliderName]: floatValue,
+        };
+        newValues.Pencil = updatedPencil;
+        
+      }
+      else if (type === "depth") {
+        newValues.depth = {
+          ...newValues.depth,
+          [sliderName]: floatValue,
+        };
+        
+      }
+      else if (type === "edges") {
+        newValues.edges = {
+          ...newValues.edges,
           [sliderName]: floatValue,
         };
         
@@ -388,8 +407,35 @@ export default function Sidebar({
         referenceImages.push(defaultReferenceImage);
       }
     }
+    if(model==='Pencil')
+    {
+      
+      referenceImages = newImages
+      .filter((image) => image.type === "reference")
+      .map((image, index) => ({
+        image: image.url,
+        strength: sliderValues.Pencil[index]?.strength || 0,
+      }));
+    }
+    for (let i=0;i<sliderValues.Pencil.length;i+=1){
+      console.log(sliderValues.Pencil[i])
+    }
   
     switch (model) {
+      case "Pencil":
+        payload = {
+          input: {
+            model: "Pencil",
+            prompt: prompt,
+            steps: steps,
+            cfg: cfg,
+            base_image: baseImage,
+            depth_map_strength:sliderValues.depth.strength,
+            line_art_strength:sliderValues.edges.strength,
+            ip_adapter_configurations: referenceImages,
+          },
+        };
+        break;
       case "Brush":
         payload = {
           input: {
@@ -426,14 +472,6 @@ export default function Sidebar({
           },
         };
         break;
-      case "Upscale_Simple":
-        payload = {
-          input: {
-            input_image: baseImage,
-            model: "Upscale_Simple",
-          },
-        };
-        break;
       case "Upscale_Detail":
         payload = {
           input: {
@@ -453,23 +491,24 @@ export default function Sidebar({
   
   
   
-    // try {
-    //   const response = await axios.post(apiEndpoint, payload, {
-    //     headers: {
-    //       Authorization: `Bearer ${bearerToken}`,
-    //       "Content-Type": "application/json",
-    //     },
-    //   });
+    try {
+      const response = await axios.post(apiEndpoint, payload, {
+        headers: {
+          Authorization: `Bearer ${bearerToken}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-    //   console.log("Response:", response.data);
+      console.log("Response:", response.data);
 
-    //   const jobId = response.data.id;
-    //   setPolling(true);
-    //   setGenerateText("Generating Image.........");
-    //   pollForStatus(jobId);
-    // } catch (error) {
-    //   console.error("Error generating image:", error);
-    // }
+      const jobId = response.data.id;
+      setPolling(true);
+      setGenerateText("Generating Image.........");
+      pollForStatus(jobId);
+    } catch (error) {
+      console.error("Error generating image:", error);
+      setGenerateText(null);
+    }
   };
 
   const pollForStatus = async (jobId) => {
@@ -495,6 +534,10 @@ export default function Sidebar({
         setPolling(false);
       } else if (polling) {
         setTimeout(() => pollForStatus(jobId), 5000);
+      }
+      else if(response.data.status === "FAILED"){
+        setGenerateText(null);
+        setPolling(false);
       }
     } catch (error) {
       console.error("Error polling status:", error);
@@ -568,7 +611,7 @@ export default function Sidebar({
         </h2>
         <div className="grid grid-cols-2 gap-4">
   {images.map((image, index) => {
-    if (model === "Upscale_Detail" && image.type === "reference") {
+    if (model === "Upscale_Detail" && image.type !== "base") {
       return null;
     }
     return model === "Brush" || image.type !== "mask" ? (
@@ -652,9 +695,9 @@ export default function Sidebar({
           <Slider
             label="Strength"
             max={0.8}
-            value={sliderValues.Pencil?.strength || 0}
+            value={sliderValues.Pencil[index-2]?.strength || 0}
             onChange={(value) =>
-              handleSliderChange("Pencil", 0, "strength", value)
+              handleSliderChange("Pencil", index-2, "strength", value)
             }
           />
         )}
@@ -792,15 +835,21 @@ export default function Sidebar({
             <Slider
               label="Strength"
               className="mb-2"
-              onChange={(value) => handleSliderChange('Depth_Map', { strength: value })} />
-            <Slider
+              initialValue={0.94}
+              max={1}
+              step={0.01}
+              onChange={(value) =>
+                handleSliderChange("depth", 0, "strength", value)
+              }
+              ></Slider>
+            {/* <Slider
               label="Starts"
               className="mb-2"
               onChange={(value) => handleSliderChange('Depth_Map', { starts: value })} />
             <Slider
               label="Ends"
               className="mb-2"
-              onChange={(value) => handleSliderChange('Depth_Map', { ends: value })} />
+              onChange={(value) => handleSliderChange('Depth_Map', { ends: value })} /> */}
           </div>
         </div><div className="mb-4">
             <h2 className="text-sm font-semibold mb-2">Edges</h2>
@@ -813,78 +862,63 @@ export default function Sidebar({
               <Slider
                 label="Strength"
                 className="mb-2"
-                onChange={(value) => handleSliderChange('Edges', { strength: value })} />
-              <Slider
+                initialValue={0.20}
+                max={1}
+                step={0.01}
+                onChange={(value) =>
+                  handleSliderChange("edges", 0, "strength", value)
+                }
+                ></Slider>
+              {/* <Slider
                 label="Starts"
                 className="mb-2"
                 onChange={(value) => handleSliderChange('Edges', { starts: value })} />
               <Slider
                 label="Ends"
                 className="mb-2"
-                onChange={(value) => handleSliderChange('Edges', { ends: value })} />
+                onChange={(value) => handleSliderChange('Edges', { ends: value })} /> */}
             </div>
           </div></>    
 
       
      )}
       {/* Render Engine Section */}
-      {model == "Brush" && (
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold mb-2">Render Engine</h2>
-          <div>
-            <Slider
-              label="CFG"
-              className="mb-2"
-              min={8}
-              max={12}
-              step={1}
-              initialValue={10}
-              onChange={(value) => setCfg(parseFloat(value))}
-            />
-            <Slider
-              label="Steps"
-              className="mb-2"
-              min={20}
-              max={40}
-              step={1}
-              initialValue={40}
-              onChange={(value) => setSteps(parseFloat(value))}
-            />
-            <Slider
-              label="Denoise"
-              min={0}
-              max={1}
-              initialValue={0.7}
-              className="mb-2"
-              onChange={(value) => setDenoise(parseFloat(value))}
-            />
-          </div>
-        </div>
+      {(model === "Brush" || model === "Pencil") && (
+  <div className="mb-4">
+    <h2 className="text-sm font-semibold mb-2">Render Engine</h2>
+    <div>
+      <Slider
+        label="CFG"
+        className="mb-2"
+        min={8}
+        max={12}
+        step={1}
+        initialValue={10}
+        onChange={(value) => setCfg(parseFloat(value))}
+      />
+      <Slider
+        label="Steps"
+        className="mb-2"
+        min={20}
+        max={40}
+        step={1}
+        initialValue={40}
+        onChange={(value) => setSteps(parseFloat(value))}
+      />
+      {model === "Brush" && (
+        <Slider
+          label="Denoise"
+          min={0}
+          max={1}
+          initialValue={0.7}
+          className="mb-2"
+          onChange={(value) => setDenoise(parseFloat(value))}
+        />
       )}
-      {/* Generate Button */}
-      {model !== "Upscale_Detail" && (
-        <div className="mb-4">
-          <button
-            className="w-full py-2 bg-black text-white rounded-xl"
-            onClick={handleGenerate}
-          >
-            Generate
-          </button>
-        </div>
-      )}
-      {/* Enhance Textarea */}
-      {model !== "Upscale_Detail" && (
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold mb-2">Enhance</h2>
-          <textarea
-            className="resize-none w-full py-2 px-3 bg-customBG rounded-2xl"
-            rows="4"
-            value={enhancePrompt}
-            onChange={(e) => setEnhancePrompt(e.target.value)}
-          ></textarea>
-        </div>
-      )}
-      {model == "Upscale_Detail" && (
+    </div>
+  </div>
+)}
+ {model == "Upscale_Detail" && (
         <div className="mb-4">
           <h2 className="text-sm font-semibold mb-2">
             Describe the material or texture:
@@ -892,8 +926,8 @@ export default function Sidebar({
           <textarea
             className="resize-none w-full py-2 px-3 bg-customBG rounded-2xl"
             rows="4"
-            value={enhancePrompt}
-            onChange={(e) => setEnhancePrompt(e.target.value)}
+            value={materialPrompt}
+            onChange={(e) => setMaterialPrompt(e.target.value)}
           ></textarea>
         </div>
       )}
@@ -908,6 +942,31 @@ export default function Sidebar({
           ></textarea>
         </div>
       )}
+
+      {/* Generate Button */}
+      
+        <div className="mb-4">
+          <button
+            className="w-full py-2 bg-black text-white rounded-xl"
+            onClick={handleGenerate}
+          >
+            Generate
+          </button>
+        </div>
+    
+      {/* Enhance Textarea */}
+      {model !== "Upscale_Detail" && (
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold mb-2">Enhance</h2>
+          <textarea
+            className="resize-none w-full py-2 px-3 bg-customBG rounded-2xl"
+            rows="4"
+            value={enhancePrompt}
+            onChange={(e) => setEnhancePrompt(e.target.value)}
+          ></textarea>
+        </div>
+      )}
+     
       {/* Upscale Button */}
       <div className="mb-8">
         <button
@@ -917,14 +976,6 @@ export default function Sidebar({
           Upscale
         </button>
       </div>
-      {model == "Upscale_Detail" && (
-        <button
-          className="w-full py-2 bg-black text-white rounded-xl"
-          onClick={handleUpscale}
-        >
-          Repeat Upsclae
-        </button>
-      )}
     </div>
   );
 }
