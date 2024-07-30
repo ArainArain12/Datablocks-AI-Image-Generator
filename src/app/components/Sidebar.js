@@ -27,7 +27,7 @@ export default function Sidebar({
     reference: [{ strength: 1, start: 0, end: 1 }],
     lightSpot: { hardness: 0.5, multiplier: 0.2 },
     lightIPAdapter: { weight: 0.5 },
-    Pencil:[{ strength: 0 }, { strength: 0 }, { strength: 0 }],
+    Pencil:[{ strength: 1 }, { strength: 1 }, { strength: 1 }],
     depth:{strength:0.94},
     edges:{strength:0.20}
   });
@@ -229,6 +229,7 @@ export default function Sidebar({
 
   const handleImageChange = (index, event) => {
     const file = event.target.files[0];
+    console.log('File is:', file);
     if (file) {
       const localURL = URL.createObjectURL(file);
       console.log("localURL", localURL);
@@ -237,12 +238,15 @@ export default function Sidebar({
       newImages[index] = { ...newImages[index], url: localURL, file };
       setImages(newImages);
   
-      // Check if the uploaded image is a mask image and update the state
       if (newImages[index].type === "mask") {
         setMaskImage(localURL);
       }
+  
+      // Reset the file input's value
+      event.target.value = "";
     }
   };
+  
 
 
   const addImageSlot = () => {
@@ -334,10 +338,46 @@ export default function Sidebar({
       return newValues;
     });
   };
+  const [isGenerating, setIsGenerating] = useState(false);
   const handleGenerate = async () => {
+  
     console.log("Images are:", images);
     const apiEndpoint = "https://api.runpod.ai/v2/scj1cqwix6bder/run";
     const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
+  
+    // Check conditions based on model type before uploading images
+    const baseImage = images.find((img) => img.type === "base")?.url;
+    const maskImage = images.find((img) => img.type === "mask")?.url;
+    console.log('masdmasd',maskImage)
+    let referenceImages = [];
+  
+    if (model === "Brush") {
+      const brushReferenceImages = images.filter((image) => image.type === "reference");
+      if (!baseImage || !maskImage) {
+        alert("Base image and mask image are required for the Brush model.");
+        return;
+      }
+      if (brushReferenceImages.some(img => !img.url)) {
+        alert("All  reference images must have URLs for the Brush model.");
+        return;
+      }
+    } else if (model === "Pencil") {
+      const pencilReferenceImages = images.filter((image) => image.type === "reference");
+      if (!baseImage) {
+        alert("Base image is required.");
+        return;
+      }
+      if (pencilReferenceImages.length === 0 || pencilReferenceImages.some(img => !img.url)) {
+        alert("All reference images must have URLs for the Pencil model.");
+        return;
+      }
+    } else if (model === "Light_Simple") {
+      const referenceImage = images.find((img) => img.type === "reference")?.url;
+      if (!baseImage || !referenceImage) {
+        alert("Base image and one reference image are required for the Light Simple model.");
+        return;
+      }
+    }
   
     const uploadImage = async (file) => {
       console.log("File is:", file, file.name);
@@ -346,6 +386,7 @@ export default function Sidebar({
       return await getDownloadURL(storageRef);
     };
   
+    // Proceed with uploading images
     const newImages = await Promise.all(
       images.map(async (image) => {
         if (image.file) {
@@ -359,9 +400,9 @@ export default function Sidebar({
   
     setImages(newImages);
   
-    const baseImage = newImages.find((img) => img.type === "base")?.url;
+    const updatedBaseImage = newImages.find((img) => img.type === "base")?.url;
   
-    // Upload the masked image data
+    // Upload the masked image data if needed
     let maskedImageURL = null;
     if (maskedImageData) {
       const maskedImageDataBlob = await (await fetch(maskedImageData)).blob();
@@ -369,20 +410,9 @@ export default function Sidebar({
       maskedImageURL = await uploadImage(maskedImageFile);
     }
   
-    if (model === "Brush") {
-      if (!baseImage || !maskedImageURL) {
-        alert("Base image and mask image are required for the Brush model.");
-        return;
-      }
-    } else {
-      if (!baseImage) {
-        alert("Base image is required.");
-        return;
-      }
-    }
-  
+    // Create the payload based on model type
     let payload = {};
-    let referenceImages = [];
+    setIsGenerating(true);
   
     if (model === 'Brush') {
       referenceImages = newImages
@@ -396,7 +426,7 @@ export default function Sidebar({
         }));
   
       const defaultReferenceImage = {
-        image: baseImage || "",
+        image: updatedBaseImage || "",
         strength: 0,
         start_at: 0,
         end_at: 1,
@@ -406,19 +436,13 @@ export default function Sidebar({
       while (referenceImages.length < 4) {
         referenceImages.push(defaultReferenceImage);
       }
-    }
-    if(model==='Pencil')
-    {
-      
+    } else if (model === 'Pencil') {
       referenceImages = newImages
-      .filter((image) => image.type === "reference")
-      .map((image, index) => ({
-        image: image.url,
-        strength: sliderValues.Pencil[index]?.strength || 0,
-      }));
-    }
-    for (let i=0;i<sliderValues.Pencil.length;i+=1){
-      console.log(sliderValues.Pencil[i])
+        .filter((image) => image.type === "reference")
+        .map((image, index) => ({
+          image: image.url,
+          strength: sliderValues.Pencil[index]?.strength || 0,
+        }));
     }
   
     switch (model) {
@@ -429,9 +453,9 @@ export default function Sidebar({
             prompt: prompt,
             steps: steps,
             cfg: cfg,
-            base_image: baseImage,
-            depth_map_strength:sliderValues.depth.strength,
-            line_art_strength:sliderValues.edges.strength,
+            base_image: updatedBaseImage,
+            depth_map_strength: sliderValues.depth.strength,
+            line_art_strength: sliderValues.edges.strength,
             ip_adapter_configurations: referenceImages,
           },
         };
@@ -444,7 +468,7 @@ export default function Sidebar({
             steps: steps,
             cfg: cfg,
             denoise: denoise,
-            base_image: baseImage,
+            base_image: updatedBaseImage,
             ip_adapter_configurations: referenceImages,
           },
         };
@@ -457,7 +481,7 @@ export default function Sidebar({
           input: {
             model: image_found ? "Light_IPAdapter" : "Light_Simple",
             prompt: prompt,
-            input_image: baseImage,
+            input_image: updatedBaseImage,
             multiplier: sliderValues.lightSpot["multiplier"],
             hardness: sliderValues.lightSpot["hardness"],
             shape_height: shapeHeight,
@@ -475,7 +499,7 @@ export default function Sidebar({
       case "Upscale_Detail":
         payload = {
           input: {
-            input_image: baseImage,
+            input_image: updatedBaseImage,
             model: "Upscale_Detail",
             material_prompt: materialPrompt,
             enhance_prompt: enhancePrompt,
@@ -484,12 +508,11 @@ export default function Sidebar({
         break;
       default:
         console.error("Invalid model selected");
+        setIsGenerating(false);
         return;
     }
   
     console.log("Payload:", payload);
-  
-  
   
     try {
       const response = await axios.post(apiEndpoint, payload, {
@@ -498,9 +521,9 @@ export default function Sidebar({
           "Content-Type": "application/json",
         },
       });
-
+  
       console.log("Response:", response.data);
-
+  
       const jobId = response.data.id;
       setPolling(true);
       setGenerateText("Generating Image.........");
@@ -508,8 +531,10 @@ export default function Sidebar({
     } catch (error) {
       console.error("Error generating image:", error);
       setGenerateText(null);
+      setIsGenerating(false);
     }
   };
+  
 
   const pollForStatus = async (jobId) => {
     const apiStatusEndpoint = `https://api.runpod.ai/v2/scj1cqwix6bder/status/${jobId}`;
@@ -532,16 +557,23 @@ export default function Sidebar({
         )?.url)
         setOutputImageUrl(response.data.output[0]);
         setPolling(false);
-      } else if (polling) {
-        setTimeout(() => pollForStatus(jobId), 5000);
-      }
-      else if(response.data.status === "FAILED"){
+        setIsGenerating(false);
+
+      }   else if(response.data.status === "FAILED"){
         setGenerateText(null);
         setPolling(false);
+        setIsGenerating(false);
       }
+      else {
+        if (polling) {
+          setTimeout(() => pollForStatus(jobId), 5000);
+        }
+      }
+    
     } catch (error) {
       console.error("Error polling status:", error);
       setPolling(false);
+      setIsGenerating(false);
       setGenerateText(null);
     }
   };
@@ -576,6 +608,18 @@ export default function Sidebar({
     } else {
       alert("Cannot use upscale!");
     }
+  };
+  const setOutputImageAndUpscale = async () => {
+    if (outputImageUrl) {
+      handleUpscale();
+    } else {
+      alert("Cannot use upscale! Output image URL is missing.");
+    }
+  };
+  
+  // Call this function on the button click event
+  const handleUpscaleButtonClick = () => {
+    setOutputImageAndUpscale();
   };
 
   
@@ -694,7 +738,9 @@ export default function Sidebar({
          {model === "Pencil" && image.type === "reference" && (
           <Slider
             label="Strength"
-            max={0.8}
+            max={1}
+            initialValue={1}
+            min={0}
             value={sliderValues.Pencil[index-2]?.strength || 0}
             onChange={(value) =>
               handleSliderChange("Pencil", index-2, "strength", value)
@@ -948,9 +994,11 @@ export default function Sidebar({
         <div className="mb-4">
           <button
             className="w-full py-2 bg-black text-white rounded-xl"
+            disabled={isGenerating}
             onClick={handleGenerate}
           >
-            Generate
+            
+            {isGenerating ? "Generating..." : "Generate"}
           </button>
         </div>
     
@@ -971,7 +1019,7 @@ export default function Sidebar({
       <div className="mb-8">
         <button
           className="w-full py-2 bg-black text-white rounded-xl"
-          onClick={handleUpscale}
+          onClick={handleUpscaleButtonClick}
         >
           Upscale
         </button>

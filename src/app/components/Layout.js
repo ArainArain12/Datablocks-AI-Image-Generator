@@ -62,8 +62,8 @@ export default function Layout({ children }) {
             ) : (
               outputImageUrl ? (
                 <ReactBeforeSliderComponent
-                  firstImage={{ imageUrl: baseImage }}
-                  secondImage={{ imageUrl: outputImageUrl }}
+                  firstImage={{ imageUrl: outputImageUrl }}
+                  secondImage={{ imageUrl: baseImage }}
                 />
               ) : (
                 <div></div>
