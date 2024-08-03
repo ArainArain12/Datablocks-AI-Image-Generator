@@ -4,14 +4,14 @@ import Sidebar from "./Sidebar";
 import "../style.css";
 import ReactBeforeSliderComponent from 'react-before-after-slider-component';
 import 'react-before-after-slider-component/dist/build.css';
-import Canvas from '../utils/canvas'; // Import the Canvas component
+import Canvas from '../utils/canvas'; 
 
 export default function Layout({ children }) {
   const [outputImageUrl, setOutputImageUrl] = useState(null);
   const [text, setGenerateText] = useState(null);
   const [baseImage, setBaseImage] = useState(null);
-  const [maskImage, setMaskImage] = useState(null); // Add state for mask image
-  const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
+  const [maskImage, setMaskImage] = useState(null); 
+  const [isModalOpen, setIsModalOpen] = useState(false); 
   const [maskedImageData, setMaskedImageData] = useState(null);
 
   useEffect(() => {
