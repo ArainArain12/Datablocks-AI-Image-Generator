@@ -51,6 +51,8 @@ export default function Sidebar({
   const [selectedSize, setSelectedSize] = useState("S");
   const [polling, setPolling] = useState(true);
   const [test,setTest]=useState(1);
+  const [depthImage,setDepthImage]=useState("");
+  const [edgesImage,setEdgesImage]=useState("");
   // const initializeImages = () => {
   //   if (model === "Pencil") {
   //     return [
@@ -555,7 +557,15 @@ export default function Sidebar({
         setBaseImage(images.find(
           (img) => img.type === "base"
         )?.url)
-        setOutputImageUrl(response.data.output[0]);
+        if (response.data.output.length>1){
+            setDepthImage(response.data.output[1])
+            setEdgesImage(response.data.output[2]);
+            setOutputImageUrl(response.data.output[0]);
+        }
+        else{
+          setOutputImageUrl(response.data.output[0]);
+        }
+        
         setPolling(false);
         setIsGenerating(false);
 
@@ -873,9 +883,14 @@ export default function Sidebar({
       <><div className="mb-4">
           <h2 className="text-sm font-semibold mb-2">Depth Map</h2>
           <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
-            <div className="p-20 w-full bg-customBG1 flex items-center justify-center rounded-lg">
-              <img src="/assets/images/depth.png" alt="Depth Map Preview" style={{ width: '40%' }} />
-            </div>
+          <div className={`w-full bg-customBG1 flex items-center justify-center rounded-lg ${!depthImage ? 'p-20' : ''}`}>
+  {depthImage ? (
+    <img src={depthImage} alt="Edges Preview" />
+  ) : (
+    <img src="/assets/images/depth.png" alt="Edges Preview" style={{ width: '40%' }} />
+  )}
+</div>
+
           </div>
           <div>
             <Slider
@@ -900,9 +915,15 @@ export default function Sidebar({
         </div><div className="mb-4">
             <h2 className="text-sm font-semibold mb-2">Edges</h2>
             <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
-              <div className="p-20 w-full bg-customBG1 flex items-center rounded-lg justify-center">
-                <img src="/assets/images/edges.png" alt="Edges Preview" style={{ width: '40%' }} />
-              </div>
+            <div className={`w-full bg-customBG1 flex items-center rounded-lg justify-center ${!edgesImage ? 'p-20' : ''}`}>
+  {edgesImage ? (
+    <img src={edgesImage} alt="Edges Preview" />
+  ) : (
+    <img src="/assets/images/edges.png" alt="Edges Preview" style={{ width: '40%' }} />
+  )}
+</div>
+
+             
             </div>
             <div>
               <Slider
