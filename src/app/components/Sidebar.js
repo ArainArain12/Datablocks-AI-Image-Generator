@@ -373,13 +373,8 @@ export default function Sidebar({
         alert("All reference images must have URLs for the Pencil model.");
         return;
       }
-    } else if (model === "Light_Simple") {
-      const referenceImage = images.find((img) => img.type === "reference")?.url;
-      if (!baseImage || !referenceImage) {
-        alert("Base image and one reference image are required for the Light Simple model.");
-        return;
-      }
     }
+    
   
     const uploadImage = async (file) => {
       console.log("File is:", file, file.name);
@@ -559,8 +554,8 @@ export default function Sidebar({
         )?.url)
         if (response.data.output.length>1){
             setDepthImage(response.data.output[1])
-            setEdgesImage(response.data.output[2]);
-            setOutputImageUrl(response.data.output[0]);
+            setEdgesImage(response.data.output[0]);
+            setOutputImageUrl(response.data.output[2]);
         }
         else{
           setOutputImageUrl(response.data.output[0]);
