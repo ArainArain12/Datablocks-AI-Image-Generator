@@ -25,7 +25,6 @@ export default function Layout({ children }) {
   };
 
   const handleMaskComplete = (newMaskedImage) => {
-    console.log('Masked image i got is:', newMaskedImage)
     setMaskedImageData(newMaskedImage);
   };
 
@@ -98,6 +97,7 @@ export default function Layout({ children }) {
                 <ReactBeforeSliderComponent
                   firstImage={{ imageUrl: outputImageUrl }}
                   secondImage={{ imageUrl: baseImage }}
+                   style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'contain' }}
                 />
               ) : (
                 <div></div>
