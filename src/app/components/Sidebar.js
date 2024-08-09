@@ -49,7 +49,6 @@ export default function Sidebar({
   const [enhancePrompt, setEnhancePrompt] = useState("");
   const [selectedShape, setSelectedShape] = useState("circle");
   const [selectedSize, setSelectedSize] = useState("S");
-  const [polling, setPolling] = useState(true);
   const [test,setTest]=useState(1);
   const [depthImage,setDepthImage]=useState("");
   const [edgesImage,setEdgesImage]=useState("");
@@ -342,7 +341,6 @@ export default function Sidebar({
   };
   const [isGenerating, setIsGenerating] = useState(false);
   const handleGenerate = async () => {
-  
     console.log("Images are:", images);
     const apiEndpoint = "https://api.runpod.ai/v2/scj1cqwix6bder/run";
     const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
@@ -350,7 +348,7 @@ export default function Sidebar({
     // Check conditions based on model type before uploading images
     const baseImage = images.find((img) => img.type === "base")?.url;
     const maskImage = images.find((img) => img.type === "mask")?.url;
-    console.log('masdmasd',maskImage)
+    console.log('Mask Image:', maskImage);
     let referenceImages = [];
   
     if (model === "Brush") {
@@ -360,7 +358,7 @@ export default function Sidebar({
         return;
       }
       if (brushReferenceImages.some(img => !img.url)) {
-        alert("All  reference images must have URLs for the Brush model.");
+        alert("All reference images must have URLs for the Brush model.");
         return;
       }
     } else if (model === "Pencil") {
@@ -374,7 +372,6 @@ export default function Sidebar({
         return;
       }
     }
-    
   
     const uploadImage = async (file) => {
       console.log("File is:", file, file.name);
@@ -522,7 +519,6 @@ export default function Sidebar({
       console.log("Response:", response.data);
   
       const jobId = response.data.id;
-      setPolling(true);
       setGenerateText("Generating Image.........");
       pollForStatus(jobId);
     } catch (error) {
@@ -532,57 +528,51 @@ export default function Sidebar({
     }
   };
   
-
   const pollForStatus = async (jobId) => {
     const apiStatusEndpoint = `https://api.runpod.ai/v2/scj1cqwix6bder/status/${jobId}`;
     const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
-
-    try {
-      const response = await axios.get(apiStatusEndpoint, {
-        headers: {
-          Authorization: `Bearer ${bearerToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      console.log("Status Response:", response.data);
-
-      if (response.data.status === "COMPLETED") {
-        setGenerateText(null);
-        setBaseImage(images.find(
-          (img) => img.type === "base"
-        )?.url)
-        if (response.data.output.length>1){
-            setDepthImage(response.data.output[1])
+  
+    const poll = async () => {
+      try {
+        const response = await axios.get(apiStatusEndpoint, {
+          headers: {
+            Authorization: `Bearer ${bearerToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+  
+        console.log("Status Response:", response.data);
+  
+        if (response.data.status === "COMPLETED") {
+          setGenerateText(null);
+          const baseImgUrl = images.find((img) => img.type === "base")?.url;
+          setBaseImage(baseImgUrl);
+          if (response.data.output.length > 1) {
+            setDepthImage(response.data.output[1]);
             setEdgesImage(response.data.output[0]);
             setOutputImageUrl(response.data.output[2]);
+          } else {
+            setOutputImageUrl(response.data.output[0]);
+          }
+          setIsGenerating(false);
+        } else if (response.data.status === "FAILED") {
+          setGenerateText(null);
+          setIsGenerating(false);
+          alert("Image generation failed.");
+        } else {
+          setTimeout(poll, 5000); 
         }
-        else{
-          setOutputImageUrl(response.data.output[0]);
-        }
-        
-        setPolling(false);
+      } catch (error) {
+        console.error("Error polling status:", error);
         setIsGenerating(false);
-
-      }   else if(response.data.status === "FAILED"){
         setGenerateText(null);
-        setPolling(false);
-        setIsGenerating(false);
+        alert("An error occurred while polling for status.");
       }
-      else {
-        if (polling) {
-          setTimeout(() => pollForStatus(jobId), 5000);
-        }
-      }
-    
-    } catch (error) {
-      console.error("Error polling status:", error);
-      setPolling(false);
-      setIsGenerating(false);
-      setGenerateText(null);
-    }
+    };
+  
+    poll();
   };
-
+  
   const handleUpscale = async () => {
     if (outputImageUrl) {
       let payload = {};
@@ -605,7 +595,6 @@ export default function Sidebar({
         console.log("Response:", response.data);
 
         const jobId = response.data.id;
-        setPolling(true);
         pollForStatus(jobId);
       } catch (error) {
         console.error("Error generating image:", error);
