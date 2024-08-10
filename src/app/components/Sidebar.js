@@ -29,7 +29,8 @@ export default function Sidebar({
     lightIPAdapter: { weight: 0.5 },
     Pencil:[{ strength: 1 }, { strength: 1 }, { strength: 1 }],
     depth:{strength:0.94},
-    edges:{strength:0.20}
+    edges:{strength:0.20},
+    upscaleDetail:{weight:1}
   });
   const [spot, setSpot] = useState({ x: 150, y: 150 });
   const canvasRef = useRef(null);
@@ -334,6 +335,13 @@ export default function Sidebar({
           [sliderName]: floatValue,
         };
         
+        
+      }
+      else if (type === "upscaleDetail") {
+        newValues.upscaleDetail = {
+          ...newValues.upscaleDetail,
+          [sliderName]: floatValue,
+        };
       }
 
       return newValues;
@@ -497,6 +505,7 @@ export default function Sidebar({
             model: "Upscale_Detail",
             material_prompt: materialPrompt,
             enhance_prompt: enhancePrompt,
+            weight: sliderValues.upscaleDetail["weight"]
           },
         };
         break;
@@ -741,6 +750,17 @@ export default function Sidebar({
             }
           />
         )}
+        {model === "Upscale_Detail" && image.type === "base" && (
+          <Slider
+            label="Weight"
+            max={1}
+            initialValue={1}
+            value={sliderValues.upscaleDetail?.weight || 0}
+            onChange={(value) =>
+              handleSliderChange("upscaleDetail", 0, "weight", value)
+            }
+          />
+        )}
       </div>
     ) : null;
   })}
@@ -784,7 +804,7 @@ export default function Sidebar({
               label="Light Hardness"
               className="mb-2"
               min={0}
-              max={0.2}
+              max={1}
               step={0.01}
               initialValue={0.18}
               value={sliderValues.lightSpot.start}
@@ -982,7 +1002,7 @@ export default function Sidebar({
           ></textarea>
         </div>
       )}
-      {model == "Upscale_Detail" && (
+      {/* {model == "Upscale_Detail" && (
         <div className="mb-4">
           <h2 className="text-sm font-semibold mb-2">Details to enhance</h2>
           <textarea
@@ -992,7 +1012,7 @@ export default function Sidebar({
             onChange={(e) => setEnhancePrompt(e.target.value)}
           ></textarea>
         </div>
-      )}
+      )} */}
 
       {/* Generate Button */}
       
