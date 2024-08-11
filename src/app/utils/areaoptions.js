@@ -7,6 +7,7 @@ const AreaOptions = ({
   setSelectedOption,
   setShapeHeight,
   setShapeWidth,
+  setTransferValue
 }) => {
   const handleOptionClick = (option) => {
     setSelectedOption(option.text);
@@ -14,6 +15,9 @@ const AreaOptions = ({
     if (option.width !== undefined && option.height !== undefined) {
       setShapeWidth(option.width);
       setShapeHeight(option.height);
+    }
+    if (option.value!==undefined) {
+      setTransferValue(option.value);
     }
   };
 

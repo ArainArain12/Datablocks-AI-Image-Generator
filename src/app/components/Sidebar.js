@@ -8,7 +8,7 @@ import {
 } from "../utils/firebaseConfig";
 import axios from "axios";
 import AreaOptions from "../utils/areaoptions";
-import { shapes, sizes, Modes } from "../data";
+import { shapes, sizes, Modes,transfer } from "../data";
 import ModeOptions from "../utils/modeoptions";
 export default function Sidebar({
   outputImageUrl,
@@ -53,6 +53,8 @@ export default function Sidebar({
   const [test,setTest]=useState(1);
   const [depthImage,setDepthImage]=useState("");
   const [edgesImage,setEdgesImage]=useState("");
+  const [selectedTransferStyle,setSelectedTransferStyle]=useState("Linear");
+  const [SelectedTransferValue,setSelectedTransferValue]=useState("linear");
   // const initializeImages = () => {
   //   if (model === "Pencil") {
   //     return [
@@ -350,6 +352,8 @@ export default function Sidebar({
   const [isGenerating, setIsGenerating] = useState(false);
   const handleGenerate = async () => {
     console.log("Images are:", images);
+    setIsGenerating(true);
+    setGenerateText("Generating Image.........");
     const apiEndpoint = "https://api.runpod.ai/v2/scj1cqwix6bder/run";
     const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
   
@@ -414,7 +418,7 @@ export default function Sidebar({
   
     // Create the payload based on model type
     let payload = {};
-    setIsGenerating(true);
+    
   
     if (model === 'Brush') {
       referenceImages = newImages
@@ -492,8 +496,8 @@ export default function Sidebar({
             x: spot["x"],
             y: spot["y"],
             ...(image_found && {
-              reference_image: image_found,
-              reference_weight: sliderValues.lightIPAdapter["weight"],
+             reference_image: image_found,
+               reference_weight: sliderValues.lightIPAdapter["weight"],
             }),
           },
         };
@@ -505,7 +509,12 @@ export default function Sidebar({
             model: "Upscale_Detail",
             material_prompt: materialPrompt,
             enhance_prompt: enhancePrompt,
-            weight: sliderValues.upscaleDetail["weight"]
+            weight: sliderValues.upscaleDetail["weight"],
+            reference_image:newImages.find(
+              (img) => img.type === "reference"
+            )?.url,
+            type_transfer:SelectedTransferValue
+
           },
         };
         break;
@@ -528,7 +537,6 @@ export default function Sidebar({
       console.log("Response:", response.data);
   
       const jobId = response.data.id;
-      setGenerateText("Generating Image.........");
       pollForStatus(jobId);
     } catch (error) {
       console.error("Error generating image:", error);
@@ -658,9 +666,6 @@ export default function Sidebar({
         </h2>
         <div className="grid grid-cols-2 gap-4">
   {images.map((image, index) => {
-    if (model === "Upscale_Detail" && image.type !== "base") {
-      return null;
-    }
     return model === "Brush" || image.type !== "mask" ? (
       <div key={index} className="relative">
         <div className="bg-white p-4 rounded-2xl shadow border border-black border-2">
@@ -750,7 +755,7 @@ export default function Sidebar({
             }
           />
         )}
-        {model === "Upscale_Detail" && image.type === "base" && (
+        {model === "Upscale_Detail" && image.type === "reference" && (
           <Slider
             label="Weight"
             max={1}
@@ -829,6 +834,21 @@ export default function Sidebar({
               setShapeHeight={setShapeHeight}
               setShapeWidth={setShapeWidth}
             />
+          </div>
+        </>
+      )}
+
+{model === "Upscale_Detail" && (
+        <>
+          <div className="mt-14 mb-12">
+            <AreaOptions
+              data={transfer}
+              heading="Style of Transfer"
+              selectedOption={selectedTransferStyle}
+              setSelectedOption={setSelectedTransferStyle}
+              setTransferValue={setSelectedTransferValue}
+            />
+           
           </div>
         </>
       )}
