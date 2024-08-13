@@ -32,6 +32,20 @@ export const sizes = [
     height: 350,
   },
 ];
+export const transfer = [
+  {
+    text: "Linear",
+    value:"linear"
+  },
+  {
+    text: "Style",
+    value:"style transfer"
+  },
+  {
+    text: "Strong",
+    value:"strong style transfer"
+  },
+];
 
 export const Modes = [
   // {

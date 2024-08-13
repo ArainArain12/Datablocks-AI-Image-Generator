@@ -8,7 +8,7 @@ import {
 } from "../utils/firebaseConfig";
 import axios from "axios";
 import AreaOptions from "../utils/areaoptions";
-import { shapes, sizes, Modes } from "../data";
+import { shapes, sizes, Modes,transfer } from "../data";
 import ModeOptions from "../utils/modeoptions";
 export default function Sidebar({
   outputImageUrl,
@@ -29,7 +29,8 @@ export default function Sidebar({
     lightIPAdapter: { weight: 0.5 },
     Pencil:[{ strength: 1 }, { strength: 1 }, { strength: 1 }],
     depth:{strength:0.94},
-    edges:{strength:0.20}
+    edges:{strength:0.20},
+    upscaleDetail:{weight:1}
   });
   const [spot, setSpot] = useState({ x: 150, y: 150 });
   const canvasRef = useRef(null);
@@ -49,10 +50,11 @@ export default function Sidebar({
   const [enhancePrompt, setEnhancePrompt] = useState("");
   const [selectedShape, setSelectedShape] = useState("circle");
   const [selectedSize, setSelectedSize] = useState("S");
-  const [polling, setPolling] = useState(true);
   const [test,setTest]=useState(1);
   const [depthImage,setDepthImage]=useState("");
   const [edgesImage,setEdgesImage]=useState("");
+  const [selectedTransferStyle,setSelectedTransferStyle]=useState("Linear");
+  const [SelectedTransferValue,setSelectedTransferValue]=useState("linear");
   // const initializeImages = () => {
   //   if (model === "Pencil") {
   //     return [
@@ -335,6 +337,13 @@ export default function Sidebar({
           [sliderName]: floatValue,
         };
         
+        
+      }
+      else if (type === "upscaleDetail") {
+        newValues.upscaleDetail = {
+          ...newValues.upscaleDetail,
+          [sliderName]: floatValue,
+        };
       }
 
       return newValues;
@@ -342,15 +351,16 @@ export default function Sidebar({
   };
   const [isGenerating, setIsGenerating] = useState(false);
   const handleGenerate = async () => {
-  
     console.log("Images are:", images);
-    const apiEndpoint = "https://api.runpod.ai/v2/scj1cqwix6bder/run";
+    setIsGenerating(true);
+    setGenerateText("Generating Image.........");
+    const apiEndpoint = "https://api.runpod.ai/v2/zu4f1p89w4n70w/run";
     const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
   
     // Check conditions based on model type before uploading images
     const baseImage = images.find((img) => img.type === "base")?.url;
     const maskImage = images.find((img) => img.type === "mask")?.url;
-    console.log('masdmasd',maskImage)
+    console.log('Mask Image:', maskImage);
     let referenceImages = [];
   
     if (model === "Brush") {
@@ -360,7 +370,7 @@ export default function Sidebar({
         return;
       }
       if (brushReferenceImages.some(img => !img.url)) {
-        alert("All  reference images must have URLs for the Brush model.");
+        alert("All reference images must have URLs for the Brush model.");
         return;
       }
     } else if (model === "Pencil") {
@@ -374,7 +384,6 @@ export default function Sidebar({
         return;
       }
     }
-    
   
     const uploadImage = async (file) => {
       console.log("File is:", file, file.name);
@@ -409,7 +418,7 @@ export default function Sidebar({
   
     // Create the payload based on model type
     let payload = {};
-    setIsGenerating(true);
+    
   
     if (model === 'Brush') {
       referenceImages = newImages
@@ -487,8 +496,8 @@ export default function Sidebar({
             x: spot["x"],
             y: spot["y"],
             ...(image_found && {
-              reference_image: image_found,
-              reference_weight: sliderValues.lightIPAdapter["weight"],
+             reference_image: image_found,
+               reference_weight: sliderValues.lightIPAdapter["weight"],
             }),
           },
         };
@@ -500,6 +509,12 @@ export default function Sidebar({
             model: "Upscale_Detail",
             material_prompt: materialPrompt,
             enhance_prompt: enhancePrompt,
+            weight: sliderValues.upscaleDetail["weight"],
+            reference_image:newImages.find(
+              (img) => img.type === "reference"
+            )?.url,
+            type_transfer:SelectedTransferValue
+
           },
         };
         break;
@@ -522,8 +537,6 @@ export default function Sidebar({
       console.log("Response:", response.data);
   
       const jobId = response.data.id;
-      setPolling(true);
-      setGenerateText("Generating Image.........");
       pollForStatus(jobId);
     } catch (error) {
       console.error("Error generating image:", error);
@@ -532,57 +545,51 @@ export default function Sidebar({
     }
   };
   
-
   const pollForStatus = async (jobId) => {
-    const apiStatusEndpoint = `https://api.runpod.ai/v2/scj1cqwix6bder/status/${jobId}`;
+    const apiStatusEndpoint = `https://api.runpod.ai/v2/zu4f1p89w4n70w/status/${jobId}`;
     const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
-
-    try {
-      const response = await axios.get(apiStatusEndpoint, {
-        headers: {
-          Authorization: `Bearer ${bearerToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      console.log("Status Response:", response.data);
-
-      if (response.data.status === "COMPLETED") {
-        setGenerateText(null);
-        setBaseImage(images.find(
-          (img) => img.type === "base"
-        )?.url)
-        if (response.data.output.length>1){
-            setDepthImage(response.data.output[1])
+  
+    const poll = async () => {
+      try {
+        const response = await axios.get(apiStatusEndpoint, {
+          headers: {
+            Authorization: `Bearer ${bearerToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+  
+        console.log("Status Response:", response.data);
+  
+        if (response.data.status === "COMPLETED") {
+          setGenerateText(null);
+          const baseImgUrl = images.find((img) => img.type === "base")?.url;
+          setBaseImage(baseImgUrl);
+          if (response.data.output.length > 1) {
+            setDepthImage(response.data.output[1]);
             setEdgesImage(response.data.output[0]);
             setOutputImageUrl(response.data.output[2]);
+          } else {
+            setOutputImageUrl(response.data.output[0]);
+          }
+          setIsGenerating(false);
+        } else if (response.data.status === "FAILED") {
+          setGenerateText(null);
+          setIsGenerating(false);
+          alert("Image generation failed.");
+        } else {
+          setTimeout(poll, 5000); 
         }
-        else{
-          setOutputImageUrl(response.data.output[0]);
-        }
-        
-        setPolling(false);
+      } catch (error) {
+        console.error("Error polling status:", error);
         setIsGenerating(false);
-
-      }   else if(response.data.status === "FAILED"){
         setGenerateText(null);
-        setPolling(false);
-        setIsGenerating(false);
+        alert("An error occurred while polling for status.");
       }
-      else {
-        if (polling) {
-          setTimeout(() => pollForStatus(jobId), 5000);
-        }
-      }
-    
-    } catch (error) {
-      console.error("Error polling status:", error);
-      setPolling(false);
-      setIsGenerating(false);
-      setGenerateText(null);
-    }
+    };
+  
+    poll();
   };
-
+  
   const handleUpscale = async () => {
     if (outputImageUrl) {
       let payload = {};
@@ -592,7 +599,7 @@ export default function Sidebar({
           input_image: outputImageUrl,
         },
       };
-      const apiEndpoint = "https://api.runpod.ai/v2/scj1cqwix6bder/run";
+      const apiEndpoint = "https://api.runpod.ai/v2/zu4f1p89w4n70ws/run";
       const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
       try {
         const response = await axios.post(apiEndpoint, payload, {
@@ -605,7 +612,6 @@ export default function Sidebar({
         console.log("Response:", response.data);
 
         const jobId = response.data.id;
-        setPolling(true);
         pollForStatus(jobId);
       } catch (error) {
         console.error("Error generating image:", error);
@@ -660,9 +666,6 @@ export default function Sidebar({
         </h2>
         <div className="grid grid-cols-2 gap-4">
   {images.map((image, index) => {
-    if (model === "Upscale_Detail" && image.type !== "base") {
-      return null;
-    }
     return model === "Brush" || image.type !== "mask" ? (
       <div key={index} className="relative">
         <div className="bg-white p-4 rounded-2xl shadow border border-black border-2">
@@ -752,6 +755,17 @@ export default function Sidebar({
             }
           />
         )}
+        {model === "Upscale_Detail" && image.type === "reference" && (
+          <Slider
+            label="Weight"
+            max={1}
+            initialValue={1}
+            value={sliderValues.upscaleDetail?.weight || 0}
+            onChange={(value) =>
+              handleSliderChange("upscaleDetail", 0, "weight", value)
+            }
+          />
+        )}
       </div>
     ) : null;
   })}
@@ -795,7 +809,7 @@ export default function Sidebar({
               label="Light Hardness"
               className="mb-2"
               min={0}
-              max={0.2}
+              max={1}
               step={0.01}
               initialValue={0.18}
               value={sliderValues.lightSpot.start}
@@ -820,6 +834,21 @@ export default function Sidebar({
               setShapeHeight={setShapeHeight}
               setShapeWidth={setShapeWidth}
             />
+          </div>
+        </>
+      )}
+
+{model === "Upscale_Detail" && (
+        <>
+          <div className="mt-14 mb-12">
+            <AreaOptions
+              data={transfer}
+              heading="Style of Transfer"
+              selectedOption={selectedTransferStyle}
+              setSelectedOption={setSelectedTransferStyle}
+              setTransferValue={setSelectedTransferValue}
+            />
+           
           </div>
         </>
       )}
@@ -993,7 +1022,7 @@ export default function Sidebar({
           ></textarea>
         </div>
       )}
-      {model == "Upscale_Detail" && (
+      {/* {model == "Upscale_Detail" && (
         <div className="mb-4">
           <h2 className="text-sm font-semibold mb-2">Details to enhance</h2>
           <textarea
@@ -1003,7 +1032,7 @@ export default function Sidebar({
             onChange={(e) => setEnhancePrompt(e.target.value)}
           ></textarea>
         </div>
-      )}
+      )} */}
 
       {/* Generate Button */}
       

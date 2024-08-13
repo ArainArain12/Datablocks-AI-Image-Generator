@@ -15,7 +15,25 @@ const Canvas = ({ maskImage, onClose, onMaskComplete }) => {
     const img = new Image();
     img.src = maskImage;
     img.onload = () => {
-      ctx.drawImage(img, 0, 0, backgroundCanvas.width, backgroundCanvas.height);
+      // Calculate aspect ratio and size
+      const imgAspectRatio = img.width / img.height;
+      const canvasAspectRatio = backgroundCanvas.width / backgroundCanvas.height;
+      
+      let drawWidth, drawHeight;
+      if (imgAspectRatio > canvasAspectRatio) {
+        drawWidth = backgroundCanvas.width;
+        drawHeight = backgroundCanvas.width / imgAspectRatio;
+      } else {
+        drawWidth = backgroundCanvas.height * imgAspectRatio;
+        drawHeight = backgroundCanvas.height;
+      }
+
+      // Center the image on the canvas
+      const xOffset = (backgroundCanvas.width - drawWidth) / 2;
+      const yOffset = (backgroundCanvas.height - drawHeight) / 2;
+
+      ctx.clearRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+      ctx.drawImage(img, xOffset, yOffset, drawWidth, drawHeight);
     };
   }, [maskImage]);
 
@@ -48,7 +66,7 @@ const Canvas = ({ maskImage, onClose, onMaskComplete }) => {
   const handleClose = () => {
     const backgroundCanvas = backgroundCanvasRef.current;
     const drawingCanvas = drawingCanvasRef.current;
-    
+
     const offScreenCanvas = document.createElement('canvas');
     offScreenCanvas.width = backgroundCanvas.width;
     offScreenCanvas.height = backgroundCanvas.height;
