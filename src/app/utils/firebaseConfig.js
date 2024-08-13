@@ -5,12 +5,13 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
 const firebaseConfig = {
-    apiKey: "AIzaSyD1u12-N2soL-kBVxewlN5UbmlyDL7DnxQ",
-    authDomain: "datablocks-a36be.firebaseapp.com",
-    projectId: "datablocks-a36be",
-    storageBucket: "datablocks-a36be.appspot.com",
-    messagingSenderId: "259380964926",
-    appId: "1:259380964926:web:0d33c479cc279173366b6f"
+  apiKey: "AIzaSyDPjFHKqKkyrfcLSNpyB6EFxfMPE5buP5E",
+  authDomain: "datablocks-507b8.firebaseapp.com",
+  projectId: "datablocks-507b8",
+  storageBucket: "datablocks-507b8.appspot.com",
+  messagingSenderId: "629877656635",
+  appId: "1:629877656635:web:dca9a23164b552b62fe01e",
+  measurementId: "G-04JQVBGF69"
   };
   const app = initializeApp(firebaseConfig);
   const storage = getStorage(app);
