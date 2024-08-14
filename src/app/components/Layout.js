@@ -10,22 +10,27 @@ export default function Layout({ children }) {
   const [outputImageUrl, setOutputImageUrl] = useState("");
   const [text, setGenerateText] = useState(null);
   const [baseImage, setBaseImage] = useState(null);
-  const [maskImage, setMaskImage] = useState(null); 
+  const [currentMaskImage, setCurrentMaskImage] = useState(null); 
+  const [maskImages, setMaskImages] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false); 
   const [maskedImageData, setMaskedImageData] = useState(null);
 
   useEffect(() => {
-    if (maskImage) {
+    if (currentMaskImage) {
       setIsModalOpen(true);
     }
-  }, [maskImage]);
+  }, [currentMaskImage]);
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setCurrentMaskImage(null); 
   };
 
   const handleMaskComplete = (newMaskedImage) => {
     setMaskedImageData(newMaskedImage);
+    setMaskImages(prev => [...prev, newMaskedImage]); 
+    setCurrentMaskImage(null); 
+    closeModal();
   };
 
   const handleDownload = async () => {
@@ -85,8 +90,8 @@ export default function Layout({ children }) {
           setOutputImageUrl={setOutputImageUrl}
           setGenerateText={setGenerateText}
           setBaseImage={setBaseImage}
-          setMaskImage={setMaskImage}
-          maskedImageData={maskedImageData}
+          setCurrentMaskImage={setCurrentMaskImage}
+          maskImages={maskImages}
         />
         <section className="flex-1 bg-white overflow-hidden relative">
           <div className="w-fit h-fit flex items-center justify-center mx-auto bg-white">
@@ -97,7 +102,7 @@ export default function Layout({ children }) {
                 <ReactBeforeSliderComponent
                   firstImage={{ imageUrl: outputImageUrl }}
                   secondImage={{ imageUrl: baseImage }}
-                   style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'contain' }}
+                  style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'contain' }}
                 />
               ) : (
                 <div></div>
@@ -105,9 +110,13 @@ export default function Layout({ children }) {
             )}
           </div>
 
-          {isModalOpen && (
+          {isModalOpen && currentMaskImage && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-              <Canvas maskImage={maskImage} onClose={closeModal} onMaskComplete={handleMaskComplete} />
+              <Canvas 
+                maskImage={currentMaskImage} 
+                onClose={closeModal} 
+                onMaskComplete={handleMaskComplete} 
+              />
             </div>
           )}
         </section>
