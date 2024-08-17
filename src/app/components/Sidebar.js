@@ -15,8 +15,8 @@ export default function Sidebar({
   setOutputImageUrl,
   setGenerateText,
   setBaseImage,
-  setMaskImage,
-  maskedImageData
+  setCurrentMaskImage,
+  maskImages
 }) {
   // const [images, setImages] = useState([
   //   { type: "base", url: "" },
@@ -243,10 +243,8 @@ export default function Sidebar({
       setImages(newImages);
   
       if (newImages[index].type === "mask") {
-        setMaskImage(localURL);
+        setCurrentMaskImage(localURL);
       }
-  
-      // Reset the file input's value
       event.target.value = "";
     }
   };
@@ -255,7 +253,7 @@ export default function Sidebar({
 
   const addImageSlot = () => {
     if (images.filter((image) => image.type === "reference").length < 4) {
-      setImages([...images, { type: "reference", url: "" }]);
+      setImages([...images, { type: "reference", url: "" }, { type: "mask", url: "" },]);
       setSliderValues((prevValues) => ({
         ...prevValues,
         reference: [...prevValues.reference, { strength: 0, start: 0, end: 0 }],
@@ -265,14 +263,15 @@ export default function Sidebar({
     }
   };
 
-  const removeImageSlot = (index) => {
+  const removeImageSlot = (index, maskIndex) => {
     if (images.length > 3 || model !== "Brush") {
-      const newImages = images.filter((_, i) => i !== index);
-      setImages(newImages);
+      const indicesToExclude = new Set([index, maskIndex]);
+      const newImages = images.filter((_, i) => !indicesToExclude.has(i));
       const newSliderValues = { ...sliderValues };
       newSliderValues.reference = newSliderValues.reference.filter(
         (_, i) => i !== index - 2
       );
+      setImages(newImages);
       setSliderValues(newSliderValues);
     } else {
       alert("At least one reference image is needed in brush mode!");
@@ -313,9 +312,6 @@ export default function Sidebar({
         
       }
       else if (type === "Pencil") {
-        console.log('Slider type Pencil Called;')
-        console.log(floatValue)
-        console.log('index',index)
         const updatedPencil = [...newValues.Pencil];
         updatedPencil[index] = {
           ...updatedPencil[index],
@@ -359,13 +355,11 @@ export default function Sidebar({
   
     // Check conditions based on model type before uploading images
     const baseImage = images.find((img) => img.type === "base")?.url;
-    const maskImage = images.find((img) => img.type === "mask")?.url;
-    console.log('Mask Image:', maskImage);
     let referenceImages = [];
   
     if (model === "Brush") {
       const brushReferenceImages = images.filter((image) => image.type === "reference");
-      if (!baseImage || !maskImage) {
+      if (!baseImage) {
         alert("Base image and mask image are required for the Brush model.");
         return;
       }
@@ -386,13 +380,12 @@ export default function Sidebar({
     }
   
     const uploadImage = async (file) => {
-      console.log("File is:", file, file.name);
       const storageRef = ref(storage, file.name);
       await uploadBytes(storageRef, file);
       return await getDownloadURL(storageRef);
     };
   
-    // Proceed with uploading images
+   
     const newImages = await Promise.all(
       images.map(async (image) => {
         if (image.file) {
@@ -408,18 +401,20 @@ export default function Sidebar({
   
     const updatedBaseImage = newImages.find((img) => img.type === "base")?.url;
   
-    // Upload the masked image data if needed
-    let maskedImageURL = null;
-    if (maskedImageData) {
-      const maskedImageDataBlob = await (await fetch(maskedImageData)).blob();
-      const maskedImageFile = new File([maskedImageDataBlob], "masked_image.png");
-      maskedImageURL = await uploadImage(maskedImageFile);
+    let maskedImageURLs = [];
+    if (maskImages.length > 0) {
+      maskedImageURLs = await Promise.all(
+        maskImages.map(async (imageData,index) => {
+          const maskedImageDataBlob = await (await fetch(imageData)).blob();
+          const timestamp = new Date().getTime();
+          const maskedImageFile = new File([maskedImageDataBlob], `masked_image_${timestamp}_${index}.png`);
+          return uploadImage(maskedImageFile);
+        })
+      );
     }
-  
-    // Create the payload based on model type
+    
     let payload = {};
     
-  
     if (model === 'Brush') {
       referenceImages = newImages
         .filter((image) => image.type === "reference")
@@ -428,7 +423,7 @@ export default function Sidebar({
           strength: sliderValues.reference[index]?.strength || 0,
           start_at: sliderValues.reference[index]?.start || 0,
           end_at: sliderValues.reference[index]?.end || 0,
-          mask: maskedImageURL || "",
+          mask: maskedImageURLs[index] || "",
         }));
   
       const defaultReferenceImage = {
@@ -436,7 +431,7 @@ export default function Sidebar({
         strength: 0,
         start_at: 0,
         end_at: 1,
-        mask: maskedImageURL || "",
+        mask: maskedImageURLs[0] || "",
       };
   
       while (referenceImages.length < 4) {
@@ -665,110 +660,112 @@ export default function Sidebar({
             : "Visual Prompting"}
         </h2>
         <div className="grid grid-cols-2 gap-4">
-  {images.map((image, index) => {
-    return model === "Brush" || image.type !== "mask" ? (
-      <div key={index} className="relative">
-        <div className="bg-white p-4 rounded-2xl shadow border border-black border-2">
-          <label className="w-full mb-2 cursor-pointer block relative flex flex-col items-center">
-            <input
-              type="file"
-              className="hidden"
-              onChange={(event) => handleImageChange(index, event)}
-            />
-            <img
-              src={image.url || "/assets/images/upload.png"}
-              alt="Upload Image"
-              className="mx-auto"
-              style={{ width: "50%" }}
-            />
-            <span className="mt-2 text-sm">
-              {image.type === "base"
-                ? "Your Input Image"
-                : image.type === "mask"
-                ? "Your Mask Image"
-                : `Image Ref # ${index - 1}`}
-            </span>
-          </label>
-          {image.type !== "base" &&
-            image.type !== "mask" &&
-            referenceCount > 1 && model==='Brush' && (
-              <img
-                onClick={() => removeImageSlot(index)}
-                className="absolute top-2 right-2 bg-transparent text-white rounded-2xl cursor-pointer"
-                src="/assets/images/delete.png"
-                style={{ width: "20%" }}
-                alt="Delete"
-              />
-            )}
-        </div>
-        {model === "Brush" &&
-          image.type !== "base" &&
-          image.type !== "mask" && (
-            <>
-              <Slider
-                label="Strength"
-                value={sliderValues.reference[index - 2]?.strength || 0}
-                min={0.8}
-                max={1.3}
-                initialValue={1}
-                onChange={(value) =>
-                  handleSliderChange("reference", index - 2, "strength", value)
-                }
-              />
-              <Slider
-                label="Start"
-                value={sliderValues.reference[index - 2]?.start || 0}
-                initialValue={0}
-                onChange={(value) =>
-                  handleSliderChange("reference", index - 2, "start", value)
-                }
-              />
-              <Slider
-                label="End"
-                value={sliderValues.reference[index - 2]?.end || 0}
-                initialValue={1}
-                onChange={(value) =>
-                  handleSliderChange("reference", index - 2, "end", value)
-                }
-              />
-            </>
-          )}
-        {model === "Light_Simple" && image.type === "reference" && (
-          <Slider
-            label="Weight"
-            max={0.8}
-            value={sliderValues.lightIPAdapter?.weight || 0}
-            onChange={(value) =>
-              handleSliderChange("lightIPAdapter", 0, "weight", value)
-            }
+        {images.map((image, index) => {
+  const referenceIndex = Math.floor((index - 1) / 2);
+  const maskIndex = referenceIndex + 1;
+
+  return model === "Brush" || image.type !== "mask" ? (
+    <div key={index} className="relative">
+      <div className="bg-white p-4 rounded-2xl shadow border border-black border-2">
+        <label className="w-full mb-2 cursor-pointer block relative flex flex-col items-center">
+          <input
+            type="file"
+            className="hidden"
+            onChange={(event) => handleImageChange(index, event)}
           />
-        )}
-         {model === "Pencil" && image.type === "reference" && (
+          <img
+            src={image.url || "/assets/images/upload.png"}
+            alt="Upload Image"
+            className="mx-auto"
+            style={{ width: "50%" }}
+          />
+          <span className="mt-2 text-sm">
+            {image.type === "base"
+              ? "Your Input Image"
+              : image.type === "mask"
+              ? `Mask Image # ${maskIndex}`
+              : `Image Ref # ${referenceIndex + 1}`}
+          </span>
+        </label>
+        {image.type !== "base" &&
+          image.type !== "mask" &&
+          referenceCount > 1 && model === 'Brush' && (
+            <img
+              onClick={() => removeImageSlot(index,index+1)}
+              className="absolute top-2 right-2 bg-transparent text-white rounded-2xl cursor-pointer"
+              src="/assets/images/delete.png"
+              style={{ width: "20%" }}
+              alt="Delete"
+            />
+          )}
+      </div>
+      {model === "Brush" && image.type === "reference" && (
+        <>
           <Slider
             label="Strength"
-            max={1}
+            value={sliderValues.reference[referenceIndex]?.strength || 0}
+            min={0.8}
+            max={1.3}
             initialValue={1}
-            min={0}
-            value={sliderValues.Pencil[index-2]?.strength || 0}
             onChange={(value) =>
-              handleSliderChange("Pencil", index-2, "strength", value)
+              handleSliderChange("reference", referenceIndex, "strength", value)
             }
           />
-        )}
-        {model === "Upscale_Detail" && image.type === "reference" && (
           <Slider
-            label="Weight"
-            max={1}
-            initialValue={1}
-            value={sliderValues.upscaleDetail?.weight || 0}
+            label="Start"
+            value={sliderValues.reference[referenceIndex]?.start || 0}
+            initialValue={0}
             onChange={(value) =>
-              handleSliderChange("upscaleDetail", 0, "weight", value)
+              handleSliderChange("reference", referenceIndex, "start", value)
             }
           />
-        )}
-      </div>
-    ) : null;
-  })}
+          <Slider
+            label="End"
+            value={sliderValues.reference[referenceIndex]?.end || 0}
+            initialValue={1}
+            onChange={(value) =>
+              handleSliderChange("reference", referenceIndex, "end", value)
+            }
+          />
+        </>
+      )}
+      {model === "Light_Simple" && image.type === "reference" && (
+        <Slider
+          label="Weight"
+          max={0.8}
+          value={sliderValues.lightIPAdapter?.weight || 0}
+          onChange={(value) =>
+            handleSliderChange("lightIPAdapter", 0, "weight", value)
+          }
+        />
+      )}
+      {model === "Pencil" && image.type === "reference" && (
+        <Slider
+          label="Strength"
+          max={1}
+          initialValue={1}
+          min={0}
+          value={sliderValues.Pencil[index-2]?.strength || 0}
+          onChange={(value) =>
+            handleSliderChange("Pencil", index-2, "strength", value)
+          }
+        />
+      )}
+      {model === "Upscale_Detail" && image.type === "reference" && (
+        <Slider
+          label="Weight"
+          max={1}
+          initialValue={1}
+          value={sliderValues.upscaleDetail?.weight || 0}
+          onChange={(value) =>
+            handleSliderChange("upscaleDetail", 0, "weight", value)
+          }
+        />
+      )}
+    </div>
+  ) : null;
+})}
+
 
   {model === "Brush" && (
     <div className="relative">
