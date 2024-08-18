@@ -368,13 +368,9 @@ export default function Sidebar({
         return;
       }
     } else if (model === "Pencil") {
-      const pencilReferenceImages = images.filter((image) => image.type === "reference");
+      // const pencilReferenceImages = images.filter((image) => image.type === "reference");
       if (!baseImage) {
         alert("Base image is required.");
-        return;
-      }
-      if (pencilReferenceImages.length === 0 || pencilReferenceImages.some(img => !img.url)) {
-        alert("All reference images must have URLs for the Pencil model.");
         return;
       }
     }
@@ -441,10 +437,21 @@ export default function Sidebar({
       referenceImages = newImages
         .filter((image) => image.type === "reference")
         .map((image, index) => ({
-          image: image.url,
-          strength: sliderValues.Pencil[index]?.strength || 0,
+          image: image.url || updatedBaseImage, 
+          strength: image.url ? sliderValues.Pencil[index]?.strength || 0 : 0, 
         }));
+    
+      // Ensure there are at least 3 reference images
+      const defaultReferenceImage = {
+        image: updatedBaseImage,
+        strength: 0,
+      };
+    
+      while (referenceImages.length < 3) {
+        referenceImages.push(defaultReferenceImage);
+      }
     }
+    
     switch (model) {
       case "Pencil":
         payload = {
