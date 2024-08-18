@@ -56,7 +56,7 @@ const Canvas = ({ maskImage, onClose, onMaskComplete }) => {
     if (isErasing) {
       ctx.clearRect(x - brushSize / 2, y - brushSize / 2, brushSize, brushSize);
     } else {
-      ctx.fillStyle = 'black';
+      ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(x, y, brushSize, 0, 2 * Math.PI);
       ctx.fill();

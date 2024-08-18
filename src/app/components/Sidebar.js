@@ -285,18 +285,20 @@ export default function Sidebar({
 
       if (type === "reference") {
         const updatedReference = [...newValues.reference];
+        console.log('updatedRef',updatedReference)
         const currentRef = updatedReference[index];
+        console.log('current Ref',currentRef)
 
-        if (sliderName === "start" && floatValue >= currentRef.end) {
-          setError("Start value must be less than End value.");
-          return prevValues;
-        } else if (sliderName === "end" && floatValue <= currentRef.start) {
-          setError("End value must be greater than Start value.");
-          return prevValues;
-        } else {
-          setError("");
+        // if (sliderName === "start" && floatValue >= currentRef.end) {
+        //   setError("Start value must be less than End value.");
+        //   return prevValues;
+        // } else if (sliderName === "end" && floatValue <= currentRef.start) {
+        //   setError("End value must be greater than Start value.");
+        //   return prevValues;
+        // } else {
+        //   setError("");
           updatedReference[index] = { ...currentRef, [sliderName]: floatValue };
-        }
+       // }
 
         newValues.reference = updatedReference;
       } else if (type === "lightSpot") {
@@ -416,9 +418,9 @@ export default function Sidebar({
         .filter((image) => image.type === "reference")
         .map((image, index) => ({
           image: image.url,
-          strength: sliderValues.reference[index]?.strength || 0,
+          strength: sliderValues.reference[index]?.strength || 1,
           start_at: sliderValues.reference[index]?.start || 0,
-          end_at: sliderValues.reference[index]?.end || 0,
+          end_at: sliderValues.reference[index]?.end || 1,
           mask: maskedImageURLs[index] || "",
         }));
   
@@ -525,23 +527,23 @@ export default function Sidebar({
   
     console.log("Payload:", payload);
   
-    try {
-      const response = await axios.post(apiEndpoint, payload, {
-        headers: {
-          Authorization: `Bearer ${bearerToken}`,
-          "Content-Type": "application/json",
-        },
-      });
+    // try {
+    //   const response = await axios.post(apiEndpoint, payload, {
+    //     headers: {
+    //       Authorization: `Bearer ${bearerToken}`,
+    //       "Content-Type": "application/json",
+    //     },
+    //   });
   
-      console.log("Response:", response.data);
+    //   console.log("Response:", response.data);
   
-      const jobId = response.data.id;
-      pollForStatus(jobId);
-    } catch (error) {
-      console.error("Error generating image:", error);
-      setGenerateText(null);
-      setIsGenerating(false);
-    }
+    //   const jobId = response.data.id;
+    //   pollForStatus(jobId);
+    // } catch (error) {
+    //   console.error("Error generating image:", error);
+    //   setGenerateText(null);
+    //   setIsGenerating(false);
+    // }
   };
   
   const pollForStatus = async (jobId) => {
