@@ -253,7 +253,7 @@ export default function Sidebar({
 
   const addImageSlot = () => {
     if (images.filter((image) => image.type === "reference").length < 4) {
-      setImages([...images, { type: "reference", url: "" }, { type: "mask", url: "" },]);
+      setImages([...images, { type: "mask", url: "" }, { type: "reference", url: "" }]);
       setSliderValues((prevValues) => ({
         ...prevValues,
         reference: [...prevValues.reference, { strength: 0, start: 0, end: 0 }],
@@ -445,7 +445,6 @@ export default function Sidebar({
           strength: sliderValues.Pencil[index]?.strength || 0,
         }));
     }
-  
     switch (model) {
       case "Pencil":
         payload = {
@@ -498,18 +497,16 @@ export default function Sidebar({
         };
         break;
       case "Upscale_Detail":
+        const referenceImage = newImages.find((img) => img.type === "reference")?.url;
         payload = {
           input: {
             input_image: updatedBaseImage,
             model: "Upscale_Detail",
             material_prompt: materialPrompt,
             enhance_prompt: enhancePrompt,
-            weight: sliderValues.upscaleDetail["weight"],
-            reference_image:newImages.find(
-              (img) => img.type === "reference"
-            )?.url,
-            type_transfer:SelectedTransferValue
-
+            weight: referenceImage ? sliderValues.upscaleDetail["weight"] : 0,
+            reference_image: referenceImage || updatedBaseImage,
+            type_transfer: SelectedTransferValue
           },
         };
         break;
@@ -684,14 +681,14 @@ export default function Sidebar({
               ? "Your Input Image"
               : image.type === "mask"
               ? `Mask Image # ${maskIndex}`
-              : `Image Ref # ${referenceIndex + 1}`}
+              : `Image Ref # ${model==='Brush'?referenceIndex + 1:index-1}`}
           </span>
         </label>
         {image.type !== "base" &&
           image.type !== "mask" &&
           referenceCount > 1 && model === 'Brush' && (
             <img
-              onClick={() => removeImageSlot(index,index+1)}
+              onClick={() => removeImageSlot(index,index-1)}
               className="absolute top-2 right-2 bg-transparent text-white rounded-2xl cursor-pointer"
               src="/assets/images/delete.png"
               style={{ width: "20%" }}
