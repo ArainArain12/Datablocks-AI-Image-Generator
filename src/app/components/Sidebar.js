@@ -527,23 +527,23 @@ export default function Sidebar({
   
     console.log("Payload:", payload);
   
-    // try {
-    //   const response = await axios.post(apiEndpoint, payload, {
-    //     headers: {
-    //       Authorization: `Bearer ${bearerToken}`,
-    //       "Content-Type": "application/json",
-    //     },
-    //   });
-  
-    //   console.log("Response:", response.data);
-  
-    //   const jobId = response.data.id;
-    //   pollForStatus(jobId);
-    // } catch (error) {
-    //   console.error("Error generating image:", error);
-    //   setGenerateText(null);
-    //   setIsGenerating(false);
-    // }
+       try {
+         const response = await axios.post(apiEndpoint, payload, {
+         headers: {
+             Authorization: `Bearer ${bearerToken}`,
+             "Content-Type": "application/json",
+           },
+         });
+
+         console.log("Response:", response.data);
+    
+         const jobId = response.data.id;
+         pollForStatus(jobId);
+       } catch (error) {
+         console.error("Error generating image:", error);
+         setGenerateText(null);
+         setIsGenerating(false);
+       }
   };
   
   const pollForStatus = async (jobId) => {
