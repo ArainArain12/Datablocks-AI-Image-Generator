@@ -93,7 +93,7 @@ export default function Layout({ children }) {
           setCurrentMaskImage={setCurrentMaskImage}
           maskImages={maskImages}
         />
-        <section className="flex-1 bg-white overflow-hidden relative">
+        <section className="flex-1 bg-white relative overflow-scroll">
           <div className="w-fit h-fit flex items-center justify-center mx-auto bg-white">
             {text ? (
               text

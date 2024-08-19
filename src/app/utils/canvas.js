@@ -102,7 +102,7 @@ const Canvas = ({ maskImage, onClose, onMaskComplete }) => {
             />
           </div>
         </div>
-        <div className="relative">
+        <div className="relative overflow-scroll">
           <canvas
             ref={backgroundCanvasRef}
             //width={1000}
