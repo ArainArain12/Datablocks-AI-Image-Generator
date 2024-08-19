@@ -253,7 +253,7 @@ export default function Sidebar({
 
   const addImageSlot = () => {
     if (images.filter((image) => image.type === "reference").length < 4) {
-      setImages([...images, { type: "reference", url: "" }, { type: "mask", url: "" },]);
+      setImages([...images, { type: "mask", url: "" }, { type: "reference", url: "" }]);
       setSliderValues((prevValues) => ({
         ...prevValues,
         reference: [...prevValues.reference, { strength: 0, start: 0, end: 0 }],
@@ -285,18 +285,20 @@ export default function Sidebar({
 
       if (type === "reference") {
         const updatedReference = [...newValues.reference];
+        console.log('updatedRef',updatedReference)
         const currentRef = updatedReference[index];
+        console.log('current Ref',currentRef)
 
-        if (sliderName === "start" && floatValue >= currentRef.end) {
-          setError("Start value must be less than End value.");
-          return prevValues;
-        } else if (sliderName === "end" && floatValue <= currentRef.start) {
-          setError("End value must be greater than Start value.");
-          return prevValues;
-        } else {
-          setError("");
+        // if (sliderName === "start" && floatValue >= currentRef.end) {
+        //   setError("Start value must be less than End value.");
+        //   return prevValues;
+        // } else if (sliderName === "end" && floatValue <= currentRef.start) {
+        //   setError("End value must be greater than Start value.");
+        //   return prevValues;
+        // } else {
+        //   setError("");
           updatedReference[index] = { ...currentRef, [sliderName]: floatValue };
-        }
+       // }
 
         newValues.reference = updatedReference;
       } else if (type === "lightSpot") {
@@ -368,13 +370,9 @@ export default function Sidebar({
         return;
       }
     } else if (model === "Pencil") {
-      const pencilReferenceImages = images.filter((image) => image.type === "reference");
+      // const pencilReferenceImages = images.filter((image) => image.type === "reference");
       if (!baseImage) {
         alert("Base image is required.");
-        return;
-      }
-      if (pencilReferenceImages.length === 0 || pencilReferenceImages.some(img => !img.url)) {
-        alert("All reference images must have URLs for the Pencil model.");
         return;
       }
     }
@@ -420,9 +418,9 @@ export default function Sidebar({
         .filter((image) => image.type === "reference")
         .map((image, index) => ({
           image: image.url,
-          strength: sliderValues.reference[index]?.strength || 0,
+          strength: sliderValues.reference[index]?.strength || 1,
           start_at: sliderValues.reference[index]?.start || 0,
-          end_at: sliderValues.reference[index]?.end || 0,
+          end_at: sliderValues.reference[index]?.end || 1,
           mask: maskedImageURLs[index] || "",
         }));
   
@@ -441,11 +439,21 @@ export default function Sidebar({
       referenceImages = newImages
         .filter((image) => image.type === "reference")
         .map((image, index) => ({
-          image: image.url,
-          strength: sliderValues.Pencil[index]?.strength || 0,
+          image: image.url || updatedBaseImage, 
+          strength: image.url ? sliderValues.Pencil[index]?.strength || 0 : 0, 
         }));
+    
+      // Ensure there are at least 3 reference images
+      const defaultReferenceImage = {
+        image: updatedBaseImage,
+        strength: 0,
+      };
+    
+      while (referenceImages.length < 3) {
+        referenceImages.push(defaultReferenceImage);
+      }
     }
-  
+    
     switch (model) {
       case "Pencil":
         payload = {
@@ -498,18 +506,16 @@ export default function Sidebar({
         };
         break;
       case "Upscale_Detail":
+        const referenceImage = newImages.find((img) => img.type === "reference")?.url;
         payload = {
           input: {
             input_image: updatedBaseImage,
             model: "Upscale_Detail",
             material_prompt: materialPrompt,
             enhance_prompt: enhancePrompt,
-            weight: sliderValues.upscaleDetail["weight"],
-            reference_image:newImages.find(
-              (img) => img.type === "reference"
-            )?.url,
-            type_transfer:SelectedTransferValue
-
+            weight: referenceImage ? sliderValues.upscaleDetail["weight"] : 0,
+            reference_image: referenceImage || updatedBaseImage,
+            type_transfer: SelectedTransferValue
           },
         };
         break;
@@ -521,23 +527,23 @@ export default function Sidebar({
   
     console.log("Payload:", payload);
   
-    try {
-      const response = await axios.post(apiEndpoint, payload, {
-        headers: {
-          Authorization: `Bearer ${bearerToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-  
-      console.log("Response:", response.data);
-  
-      const jobId = response.data.id;
-      pollForStatus(jobId);
-    } catch (error) {
-      console.error("Error generating image:", error);
-      setGenerateText(null);
-      setIsGenerating(false);
-    }
+       try {
+         const response = await axios.post(apiEndpoint, payload, {
+         headers: {
+             Authorization: `Bearer ${bearerToken}`,
+             "Content-Type": "application/json",
+           },
+         });
+
+         console.log("Response:", response.data);
+    
+         const jobId = response.data.id;
+         pollForStatus(jobId);
+       } catch (error) {
+         console.error("Error generating image:", error);
+         setGenerateText(null);
+         setIsGenerating(false);
+       }
   };
   
   const pollForStatus = async (jobId) => {
@@ -684,14 +690,14 @@ export default function Sidebar({
               ? "Your Input Image"
               : image.type === "mask"
               ? `Mask Image # ${maskIndex}`
-              : `Image Ref # ${referenceIndex + 1}`}
+              : `Image Ref # ${model==='Brush'?referenceIndex + 1:index-1}`}
           </span>
         </label>
         {image.type !== "base" &&
           image.type !== "mask" &&
           referenceCount > 1 && model === 'Brush' && (
             <img
-              onClick={() => removeImageSlot(index,index+1)}
+              onClick={() => removeImageSlot(index,index-1)}
               className="absolute top-2 right-2 bg-transparent text-white rounded-2xl cursor-pointer"
               src="/assets/images/delete.png"
               style={{ width: "20%" }}

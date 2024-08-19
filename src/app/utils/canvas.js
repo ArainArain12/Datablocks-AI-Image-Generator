@@ -15,25 +15,19 @@ const Canvas = ({ maskImage, onClose, onMaskComplete }) => {
     const img = new Image();
     img.src = maskImage;
     img.onload = () => {
-      // Calculate aspect ratio and size
-      const imgAspectRatio = img.width / img.height;
-      const canvasAspectRatio = backgroundCanvas.width / backgroundCanvas.height;
       
-      let drawWidth, drawHeight;
-      if (imgAspectRatio > canvasAspectRatio) {
-        drawWidth = backgroundCanvas.width;
-        drawHeight = backgroundCanvas.width / imgAspectRatio;
-      } else {
-        drawWidth = backgroundCanvas.height * imgAspectRatio;
-        drawHeight = backgroundCanvas.height;
-      }
+      // Calculate aspect ratio and size
+      
+      console.log(img.width);
+      console.log(img.height);
+      backgroundCanvas.width = img.width;
+      backgroundCanvas.height = img.height;
+      const drawingCanvas = drawingCanvasRef.current;
+      drawingCanvas.width = img.width;
+      drawingCanvas.height = img.height;
 
-      // Center the image on the canvas
-      const xOffset = (backgroundCanvas.width - drawWidth) / 2;
-      const yOffset = (backgroundCanvas.height - drawHeight) / 2;
-
-      ctx.clearRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
-      ctx.drawImage(img, xOffset, yOffset, drawWidth, drawHeight);
+      ctx.clearRect(0, 0, img.width, img.height);
+      ctx.drawImage(img, 0, 0,img.width, img.height);
     };
   }, [maskImage]);
 
@@ -56,7 +50,7 @@ const Canvas = ({ maskImage, onClose, onMaskComplete }) => {
     if (isErasing) {
       ctx.clearRect(x - brushSize / 2, y - brushSize / 2, brushSize, brushSize);
     } else {
-      ctx.fillStyle = 'black';
+      ctx.fillStyle = '#A020F0';
       ctx.beginPath();
       ctx.arc(x, y, brushSize, 0, 2 * Math.PI);
       ctx.fill();
@@ -111,14 +105,14 @@ const Canvas = ({ maskImage, onClose, onMaskComplete }) => {
         <div className="relative">
           <canvas
             ref={backgroundCanvasRef}
-            width={1000}
-            height={500}
+            //width={1000}
+            //height={500}
             className="absolute top-0 left-0 border border-black"
           />
           <canvas
             ref={drawingCanvasRef}
-            width={1000}
-            height={500}
+            //width={1000}
+            //height={500}
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onMouseMove={handleMouseMove}
