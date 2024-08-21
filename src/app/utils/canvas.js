@@ -80,7 +80,7 @@ const Canvas = ({ maskImage, onClose, onMaskComplete }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 overflow-scroll">
       <div className="bg-white p-4 rounded shadow-lg">
         <div className="flex justify-between mb-2">
           <button onClick={handleClose} className="px-4 py-2 bg-red-500 text-white rounded">
@@ -102,7 +102,7 @@ const Canvas = ({ maskImage, onClose, onMaskComplete }) => {
             />
           </div>
         </div>
-        <div className="relative overflow-scroll">
+        <div className="relative">
           <canvas
             ref={backgroundCanvasRef}
             //width={1000}
