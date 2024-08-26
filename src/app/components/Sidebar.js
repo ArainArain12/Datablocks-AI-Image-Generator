@@ -8,7 +8,7 @@ import {
 } from "../utils/firebaseConfig";
 import axios from "axios";
 import AreaOptions from "../utils/areaoptions";
-import { shapes, sizes, Modes,transfer } from "../data";
+import { shapes, sizes, Modes,transfer, seedTypes } from "../data";
 import ModeOptions from "../utils/modeoptions";
 export default function Sidebar({
   outputImageUrl,
@@ -49,6 +49,7 @@ export default function Sidebar({
   const [materialPrompt, setMaterialPrompt] = useState("");
   const [enhancePrompt, setEnhancePrompt] = useState("");
   const [selectedShape, setSelectedShape] = useState("circle");
+  const [selectedSeedType, setSelectedSeedType] = useState("randomize");
   const [selectedSize, setSelectedSize] = useState("S");
   const [test,setTest]=useState(1);
   const [depthImage,setDepthImage]=useState("");
@@ -908,8 +909,17 @@ export default function Sidebar({
 
       {model=='Pencil' &&(
       <><div className="mb-4">
+        <div className="mt-14 mb-12">
+            <AreaOptions
+              data={seedTypes}
+              heading="Seed type"
+              selectedOption={selectedSeedType}
+              setSelectedOption={setSelectedSeedType}
+            />
+          </div>
           <h2 className="text-sm font-semibold mb-2">Depth Map</h2>
           <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
+          
           <div className={`w-full bg-customBG1 flex items-center justify-center rounded-lg ${!depthImage ? 'p-20' : ''}`}>
   {depthImage ? (
     <img src={depthImage} alt="Edges Preview" />

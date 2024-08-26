@@ -10,6 +10,18 @@ export const shapes = [
   },
 ];
 
+export const seedTypes = [
+  {
+    text: "randomize",
+  },
+  {
+    text: "fixed",
+  },
+  {
+    text: "incremental",
+  },
+];
+
 export const sizes = [
   {
     text: "S",
