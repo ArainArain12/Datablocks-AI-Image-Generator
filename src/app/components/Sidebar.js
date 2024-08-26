@@ -786,6 +786,7 @@ export default function Sidebar({
             style={{ width: "50%" }}
           />
           <span className="mt-2 text-sm">Add More</span>
+          
         </label>
       </div>
     </div>
@@ -909,14 +910,6 @@ export default function Sidebar({
 
       {model=='Pencil' &&(
       <><div className="mb-4">
-        <div className="mt-14 mb-12">
-            <AreaOptions
-              data={seedTypes}
-              heading="Seed type"
-              selectedOption={selectedSeedType}
-              setSelectedOption={setSelectedSeedType}
-            />
-          </div>
           <h2 className="text-sm font-semibold mb-2">Depth Map</h2>
           <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
           
@@ -986,7 +979,18 @@ export default function Sidebar({
 
       
      )}
+     {model === "Brush" && (
+        <div className="mt-14 mb-12">
+        <AreaOptions
+          data={seedTypes}
+          heading="Seed type"
+          selectedOption={selectedSeedType}
+          setSelectedOption={setSelectedSeedType}
+        />
+      </div>
+      )}
       {/* Render Engine Section */}
+
       {(model === "Brush" || model === "Pencil") && (
   <div className="mb-4">
     <h2 className="text-sm font-semibold mb-2">Render Engine</h2>
@@ -1018,7 +1022,7 @@ export default function Sidebar({
           className="mb-2"
           onChange={(value) => setDenoise(parseFloat(value))}
         />
-      )}
+      )} 
     </div>
   </div>
 )}
