@@ -839,6 +839,12 @@ export default function Sidebar({
               setShapeHeight={setShapeHeight}
               setShapeWidth={setShapeWidth}
             />
+            <AreaOptions
+              data={seedTypes}
+              heading="Seed type"
+              selectedOption={selectedSeedType}
+              setSelectedOption={setSelectedSeedType}
+            />
           </div>
         </>
       )}
@@ -851,8 +857,15 @@ export default function Sidebar({
               heading="Style of Transfer"
               selectedOption={selectedTransferStyle}
               setSelectedOption={setSelectedTransferStyle}
-              setTransferValue={setSelectedTransferValue}
+              setTr
+              ansferValue={setSelectedTransferValue}
             />
+          <AreaOptions
+            data={seedTypes}
+            heading="Seed type"
+            selectedOption={selectedSeedType}
+            setSelectedOption={setSelectedSeedType}
+          />
            
           </div>
         </>
@@ -910,6 +923,14 @@ export default function Sidebar({
 
       {model=='Pencil' &&(
       <><div className="mb-4">
+          <div className="mt-14 mb-12">
+          <AreaOptions
+            data={seedTypes}
+            heading="Seed type"
+            selectedOption={selectedSeedType}
+            setSelectedOption={setSelectedSeedType}
+          />
+          </div>
           <h2 className="text-sm font-semibold mb-2">Depth Map</h2>
           <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
           
