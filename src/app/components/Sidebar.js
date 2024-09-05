@@ -354,7 +354,7 @@ export default function Sidebar({
     setIsGenerating(true);
     setGenerateText("Generating Image.........");
     const apiEndpoint = "https://api.runpod.ai/v2/t823dessgfsjuh/run";
-    const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
+    const bearerToken = "U2NOA00V0R67H4N6YJAK5J5CCMGS22YONRWZ4YNS";
   
     // Check conditions based on model type before uploading images
     const baseImage = images.find((img) => img.type === "base")?.url;
@@ -549,7 +549,7 @@ export default function Sidebar({
   
   const pollForStatus = async (jobId) => {
     const apiStatusEndpoint = `https://api.runpod.ai/v2/t823dessgfsjuh/status/${jobId}`;
-    const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
+    const bearerToken = "U2NOA00V0R67H4N6YJAK5J5CCMGS22YONRWZ4YNS";
   
     const poll = async () => {
       try {
@@ -602,7 +602,7 @@ export default function Sidebar({
         },
       };
       const apiEndpoint = "https://api.runpod.ai/v2/t823dessgfsjuh/run";
-      const bearerToken = "MRE40ZT3COAASVHZ9AAUMYDY0NZMWM4CBIB9C5C0";
+      const bearerToken = "U2NOA00V0R67H4N6YJAK5J5CCMGS22YONRWZ4YNS";
       try {
         const response = await axios.post(apiEndpoint, payload, {
           headers: {
