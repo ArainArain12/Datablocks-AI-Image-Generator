@@ -1,18 +1,21 @@
-'use client'
-import React, { useState, useEffect } from 'react';
+"use client";
+import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import "../style.css";
-import ReactBeforeSliderComponent from 'react-before-after-slider-component';
-import 'react-before-after-slider-component/dist/build.css';
-import Canvas from '../utils/canvas'; 
-
+import dynamic from "next/dynamic";
+import ReactBeforeSliderComponent from "react-before-after-slider-component";
+import "react-before-after-slider-component/dist/build.css";
+import Canvas from "../utils/canvas";
+const LoadingAnimation = dynamic(() => import("./LoadingAnimation"), {
+  ssr: false,
+});
 export default function Layout({ children }) {
   const [outputImageUrl, setOutputImageUrl] = useState("");
   const [text, setGenerateText] = useState(null);
   const [baseImage, setBaseImage] = useState(null);
-  const [currentMaskImage, setCurrentMaskImage] = useState(null); 
+  const [currentMaskImage, setCurrentMaskImage] = useState(null);
   const [maskImages, setMaskImages] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false); 
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [maskedImageData, setMaskedImageData] = useState(null);
 
   useEffect(() => {
@@ -23,41 +26,41 @@ export default function Layout({ children }) {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setCurrentMaskImage(null); 
+    setCurrentMaskImage(null);
   };
 
   const handleMaskComplete = (newMaskedImage) => {
     setMaskedImageData(newMaskedImage);
-    setMaskImages(prev => [...prev, newMaskedImage]); 
-    setCurrentMaskImage(null); 
+    setMaskImages((prev) => [...prev, newMaskedImage]);
+    setCurrentMaskImage(null);
     closeModal();
   };
 
   const handleDownload = async () => {
     if (!outputImageUrl) {
-      console.error('No image URL to download');
+      console.error("No image URL to download");
       return;
     }
-  
+
     try {
       const response = await fetch(outputImageUrl);
       if (!response.ok) {
-        throw new Error('Network response was not ok.');
+        throw new Error("Network response was not ok.");
       }
-  
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-  
-      const link = document.createElement('a');
+
+      const link = document.createElement("a");
       link.href = url;
-      link.download = 'output-image.png';
+      link.download = "output-image.png";
       document.body.appendChild(link);
       link.click();
-  
+
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Download failed:', error);
+      console.error("Download failed:", error);
     }
   };
 
@@ -73,7 +76,9 @@ export default function Layout({ children }) {
         </div>
         <div className="flex items-center space-x-4">
           <button
-            className={`px-4 py-2 bg-blue-500 text-white rounded header-btn ${!outputImageUrl && 'opacity-50 cursor-not-allowed'}`}
+            className={`px-4 py-2 bg-blue-500 text-white rounded header-btn ${
+              !outputImageUrl && "opacity-50 cursor-not-allowed"
+            }`}
             onClick={handleDownload}
             disabled={!outputImageUrl}
           >
@@ -96,26 +101,28 @@ export default function Layout({ children }) {
         <section className="flex-1 bg-white relative overflow-scroll">
           <div className="w-fit h-fit flex items-center justify-center mx-auto bg-white">
             {text ? (
-              text
+              <LoadingAnimation></LoadingAnimation>
+            ) : outputImageUrl ? (
+              <ReactBeforeSliderComponent
+                firstImage={{ imageUrl: outputImageUrl }}
+                secondImage={{ imageUrl: baseImage }}
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "500px",
+                  objectFit: "contain",
+                }}
+              />
             ) : (
-              outputImageUrl ? (
-                <ReactBeforeSliderComponent
-                  firstImage={{ imageUrl: outputImageUrl }}
-                  secondImage={{ imageUrl: baseImage }}
-                  style={{ maxWidth: '100%', maxHeight: '500px', objectFit: 'contain' }}
-                />
-              ) : (
-                <div></div>
-              )
+              <div></div>
             )}
           </div>
 
           {isModalOpen && currentMaskImage && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-              <Canvas 
-                maskImage={currentMaskImage} 
-                onClose={closeModal} 
-                onMaskComplete={handleMaskComplete} 
+              <Canvas
+                maskImage={currentMaskImage}
+                onClose={closeModal}
+                onMaskComplete={handleMaskComplete}
               />
             </div>
           )}
