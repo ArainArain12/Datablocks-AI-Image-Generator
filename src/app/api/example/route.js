@@ -48,6 +48,7 @@ export async function POST(req) {
       metadata: { uid },  // Pass user ID in metadata for later use
     });
 
+    console.log(session)
     // Return the session URL to the frontend for redirection
     return new Response(JSON.stringify({ url: session.url }), { status: 200 });
   } catch (error) {
