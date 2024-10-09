@@ -16,7 +16,6 @@ export async function addUserToDatabase(uid) {
     await set(userRef, {
       tokens: 0,     // Initialize tokens
     });
-    
   } catch (error) {
     console.error("Error adding user: ", error);
   }
