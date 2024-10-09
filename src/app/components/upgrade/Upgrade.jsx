@@ -32,6 +32,7 @@ function Upgrade() {
     });
 
     const session = await response.json();
+    console.log(session.url);
 
     if (session.url) {
       window.location.href = session.url;

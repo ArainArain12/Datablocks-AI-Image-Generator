@@ -11,18 +11,12 @@ export async function POST(req) {
     switch (amount) {
       case 3900: // 39 EUR in cents
         tokens = 2500;
-        designs = 200;
-        upscale = 100;
         break;
       case 9500: // 65 EUR in cents
         tokens = 6500;
-        designs = 500;
-        upscale = 250;
         break;
       case 29000: // 290 EUR in cents
         tokens = 20000;
-        designs = 1600;
-        upscale = 800;
         break;
       default:
         throw new Error("Invalid amount");
