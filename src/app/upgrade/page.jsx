@@ -33,11 +33,8 @@ export default function Home() {
   return (
     <>
       {signupState && <Signup />}
-
       {loginState && <Login />}
-
       {signupEmailState && <EmailSignup />}
-
       {loginEmailState && <EmailLogin />}
       <Upgrade />
     </>
