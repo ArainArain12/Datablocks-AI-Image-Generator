@@ -5,11 +5,20 @@ import {
   ref,
   uploadBytes,
   getDownloadURL,
+  auth,
 } from "../utils/firebaseConfig";
+
+import { getDatabase, ref as databaseRef, onValue } from "firebase/database"; // Import Realtime Database methods
+
+
 import axios from "axios";
 import AreaOptions from "../utils/areaoptions";
 import { shapes, sizes, Modes, transfer, seedTypes } from "../data";
 import ModeOptions from "../utils/modeoptions";
+import { deductCredit } from "./DeductCredit/DeductCredit";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css"; // Import CSS for styling
 export default function Sidebar({
   outputImageUrl,
   setOutputImageUrl,
@@ -56,6 +65,10 @@ export default function Sidebar({
   const [edgesImage, setEdgesImage] = useState("");
   const [selectedTransferStyle, setSelectedTransferStyle] = useState("Linear");
   const [SelectedTransferValue, setSelectedTransferValue] = useState("linear");
+  const [user, loading] = useAuthState(auth);
+  const [credits, setCredits] = useState(0); // State to store credits
+
+
   // const initializeImages = () => {
   //   if (model === "Pencil") {
   //     return [
@@ -168,6 +181,23 @@ export default function Sidebar({
     }
   }, [spot, model]); // Add model to the dependency array
 
+
+  useEffect(() => {
+  
+    if (user) {
+      const db = getDatabase(); // Initialize Firebase Realtime Database
+      const creditsRef = databaseRef(db, `users/${user.uid}/tokens`); // Reference to user's credits
+      console.log(user)
+      onValue(creditsRef, (snapshot) => {
+        const data = snapshot.val();
+        setCredits(data || 0); // Update state with the fetched credits or 0 if none exists
+        // setLoading(false); // Set loading to false after fetching data
+
+      });
+    }
+
+  }, [user]);
+
   // useEffect(() => {
   //   const canvas = canvasRef.current;
   //   const ctx = canvas.getContext('2d');
@@ -226,6 +256,8 @@ export default function Sidebar({
   //     canvas.removeEventListener('mouseleave', handleMouseUp);
   //   };
   // }, [angle]);
+
+ 
 
   const handleImageChange = (index, event) => {
     const file = event.target.files[0];
@@ -338,7 +370,33 @@ export default function Sidebar({
   };
   const [isGenerating, setIsGenerating] = useState(false);
   const handleGenerate = async () => {
-    console.log("Images are:", images);
+    // console.log("Images are:", images);
+    if(!user){
+      // alert('Please login first.')
+      toast.error("Login required", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+      return;
+    }
+    if(credits < 9){
+      // alert('Not enough credits.')
+      toast.error("Not enough tokens", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+      return;
+    }
     setIsGenerating(true);
     setGenerateText("Generating Image.........");
     const apiEndpoint = "https://api.runpod.ai/v2/t823dessgfsjuh/run";
@@ -529,8 +587,11 @@ export default function Sidebar({
           "Content-Type": "application/json",
         },
       });
+      if(response){
+        deductCredit(user.uid)
+      }
 
-      console.log("Response:", response.data);
+      // console.log("Response:", response.data);
 
       const jobId = response.data.id;
       pollForStatus(jobId);
@@ -605,7 +666,10 @@ export default function Sidebar({
           },
         });
 
-        console.log("Response:", response.data);
+        // console.log("Response:", response.data);
+        if(response){
+          deductCredit(user.uid)
+        }
 
         const jobId = response.data.id;
         pollForStatus(jobId);
@@ -631,6 +695,7 @@ export default function Sidebar({
 
   return (
     <div className="w-1/4 p-4 bg-white overflow-y-auto h-screen mb-4 pb-20">
+      <ToastContainer />
       {/* Mode Selection */}
       <div className="mb-4">
         <ModeOptions
@@ -941,7 +1006,7 @@ export default function Sidebar({
               />
             </div>
             <h2 className="text-sm font-semibold mb-2">Depth Map</h2>
-            <div className="bg-white p-2 rounded-2xl shadow mb-4 border border-2 border-black flex items-center justify-center">
+            <div className="bg-white p-2 rounded-2xl shadow mb-4  border-2 border-black flex items-center justify-center">
               <div
                 className={`w-full bg-customBG1 flex items-center justify-center rounded-lg ${
                   !depthImage ? "p-20" : ""

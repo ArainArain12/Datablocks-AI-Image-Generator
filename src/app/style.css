@@ -1,3 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Azeret+Mono&display=swap');
+
+
 .header-btn{
     background-color:#e6e1f2;
     color: #8166bc;
@@ -64,4 +68,14 @@ input[type="range"] {
   input[type="range"]:focus::-moz-range-thumb{
     outline: 3px solid #47114b;
     outline-offset: 0.125rem;
+  }
+
+  .spaceGrotesk{
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .Azeret{
+    font-family: 'Azeret Mono', monospace;
+  }
+  .Arial{
+    font-family: Arial, Helvetica, sans-serif;
   }
