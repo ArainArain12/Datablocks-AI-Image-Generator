@@ -3,7 +3,8 @@ import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(req) {
-  try {
+  console.log('Helloooooooo')
+    try {
     const { amount, uid } = await req.json();
 
     // Valid amounts in cents (for EUR)
@@ -55,4 +56,9 @@ export async function POST(req) {
     console.error('Stripe Checkout Error:', error); // Log the error for debugging
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
+}
+
+
+export function GET() {
+  return new Response('GET Method Not Allowed', { status: 405 });
 }

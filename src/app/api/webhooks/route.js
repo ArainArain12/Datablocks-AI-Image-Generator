@@ -5,8 +5,6 @@ import * as admin from 'firebase-admin';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-console.log("Endpoint", endpointSecret)
-
 // Initialize Firebase Admin
 
 if (!admin.apps.length) {
