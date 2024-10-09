@@ -8,7 +8,7 @@ import { FiArrowUpRight } from "react-icons/fi";
 import Navbar from "../Navbar/Navbar";
 import Footer from "../Footer/Footer";
 
-function page() {
+function Page() {
   const [user, loading] = useAuthState(auth); 
   const router = useRouter();
 
