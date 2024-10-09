@@ -42,7 +42,6 @@ export default function Layout({ children }) {
     if (user) {
       const db = getDatabase(); // Initialize Firebase Realtime Database
       const creditsRef = ref(db, `users/${user.uid}/tokens`); // Reference to user's credits
-      console.log(user)
       onValue(creditsRef, (snapshot) => {
         const data = snapshot.val();
         setCredits(data || 0); // Update state with the fetched credits or 0 if none exists
