@@ -1,3 +1,5 @@
+"use client"
+
 import React, { Fragment } from "react";
 import { auth } from "@/app/utils/firebaseConfig";
 import { useRouter } from "next/navigation";
